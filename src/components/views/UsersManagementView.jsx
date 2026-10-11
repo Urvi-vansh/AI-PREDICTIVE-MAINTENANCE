@@ -4,8 +4,9 @@ import { Badge } from '../common/Badge';
 import { Users, Shield, Plus, Mail, CheckCircle2, UserCheck, Key } from 'lucide-react';
 import { DEMO_ACCOUNTS } from '../../config/permissions';
 
-export const UsersManagementView = () => {
-  const [usersList, setUsersList] = useState(DEMO_ACCOUNTS);
+export const UsersManagementView = ({ usersList: externalUsersList, onAddUser }) => {
+  const [internalUsersList, setInternalUsersList] = useState(DEMO_ACCOUNTS);
+  const usersList = externalUsersList || internalUsersList;
   const [selectedSector, setSelectedSector] = useState('All');
 
   const filteredUsers = usersList.filter(u => {

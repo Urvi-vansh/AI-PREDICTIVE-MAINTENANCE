@@ -65,6 +65,7 @@ export default function App() {
   const [rawPreventiveSchedules, setRawPreventiveSchedules] = useState(MOCK_PREVENTIVE_SCHEDULES);
   const [rawDowntimeLogs, setRawDowntimeLogs] = useState(MOCK_DOWNTIME_LOGS);
   const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [usersList, setUsersList] = useState(DEMO_ACCOUNTS);
 
   // Modals state
   const [selectedAsset, setSelectedAsset] = useState(null);
@@ -82,6 +83,19 @@ export default function App() {
     setIsLoggedIn(true);
     const defaultTab = ROLE_PERMISSIONS[userInfo.role]?.defaultTab || 'dashboard';
     setActiveTab(defaultTab);
+  };
+
+  const handleRegisterUser = (newUser) => {
+    setUsersList((prev) => [newUser, ...prev]);
+    const newNotif = {
+      id: `NTF-${Date.now()}`,
+      title: 'New Account Registered',
+      desc: `${newUser.name} registered as ${newUser.title} (${newUser.sector}). Welcome to IndustrialCare!`,
+      time: 'Just now',
+      type: 'info',
+      read: false
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
   };
 
   const handleLogout = () => {
@@ -701,7 +715,7 @@ export default function App() {
   const isTechnician = user && [ROLES.MECHANICAL_TECH, ROLES.ELECTRICAL_TECH].includes(user.role);
 
   if (!isLoggedIn) {
-    return <LoginView onLogin={handleLogin} />;
+    return <LoginView onLogin={handleLogin} onRegisterUser={handleRegisterUser} />;
   }
 
   return (
@@ -839,7 +853,10 @@ export default function App() {
               )}
 
               {activeTab === 'users' && (
-                <UsersManagementView />
+                <UsersManagementView
+                  usersList={usersList}
+                  onAddUser={handleRegisterUser}
+                />
               )}
 
               {activeTab === 'spare-parts' && (

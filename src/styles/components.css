@@ -1020,25 +1020,29 @@
 
 /* Login Screen Component */
 .login-screen {
+  flex: 1;
   min-height: 100vh;
-  width: 100vw;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: var(--bg-secondary);
   background-image: radial-gradient(var(--primary-200) 1px, transparent 1px);
   background-size: 24px 24px;
-  padding: 1.5rem;
+  padding: 2rem 1rem;
+  box-sizing: border-box;
 }
 
 .login-card {
   width: 100%;
-  max-width: 440px;
+  max-width: 480px;
   background-color: var(--bg-primary);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
-  padding: 2.5rem 2.25rem;
+  padding: 2.25rem 2rem;
+  margin: auto;
+  box-sizing: border-box;
 }
 
 .login-brand {
@@ -1059,19 +1063,149 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .login-title {
-  font-size: 1.5rem;
+  font-size: 1.65rem;
   font-weight: 700;
   color: var(--text-main);
+  letter-spacing: -0.02em;
 }
 
 .login-subtitle {
   font-size: 0.85rem;
   color: var(--text-muted);
   margin-top: 0.25rem;
+}
+
+/* Step Headers & Badges */
+.auth-step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+}
+
+.auth-step-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--primary-700);
+  background-color: var(--primary-50);
+  border: 1px solid var(--primary-200);
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+}
+
+.auth-step-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.auth-step-desc {
+  font-size: 0.825rem;
+  color: var(--text-muted);
+}
+
+/* Role Selector Grid */
+.role-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.75rem;
+}
+
+.role-select-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--border-light);
+  background-color: var(--bg-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.role-select-card:hover {
+  border-color: var(--primary-300);
+  background-color: var(--bg-secondary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.role-select-card.active {
+  border-color: var(--primary-600);
+  background-color: #f0f7ff;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12);
+}
+
+.role-card-badge {
+  font-size: 0.675rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Dual Auth Tabs (Sign In / Register) */
+.auth-tabs-nav {
+  display: flex;
+  background-color: var(--bg-tertiary);
+  padding: 0.35rem;
+  border-radius: var(--radius-md);
+  gap: 0.35rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--border-light);
+}
+
+.auth-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-radius: calc(var(--radius-md) - 2px);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.auth-tab-btn:hover {
+  color: var(--primary-600);
+}
+
+.auth-tab-btn.active {
+  background-color: var(--bg-primary);
+  color: var(--primary-600);
+  box-shadow: var(--shadow-sm);
+  font-weight: 700;
+}
+
+/* Auth Context Banner */
+.auth-context-banner {
+  background: linear-gradient(135deg, var(--primary-50), #f8fafc);
+  border: 1px solid var(--primary-100);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
 }
 
 .login-demo-panel {
@@ -1089,13 +1223,17 @@
 
 /* Keyframe Animations */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+.auth-fade-in {
+  animation: fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 /* Responsive Styles */
