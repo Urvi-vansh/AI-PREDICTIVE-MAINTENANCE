@@ -8,9 +8,14 @@ import {
   hasTabPermission,
   filterAssetsByRole,
   filterWorkOrdersByRole,
+  filterAlertsByRole,
   filterSensorsByRole,
   getRequiredApprover,
-  canUserApproveTarget
+  canUserApproveTarget,
+  isSectorHeadRole,
+  getUserSectorPrefix,
+  isAssetAllowedForUser,
+  isSectorAllowedForUser
 } from './config/permissions';
 
 import { Sidebar } from './components/common/Sidebar';
@@ -20,6 +25,11 @@ import { WorkOrderFormModal } from './components/forms/WorkOrderFormModal';
 import { AddMachineModal } from './components/forms/AddMachineModal';
 import { UnauthorizedAccess } from './components/common/UnauthorizedAccess';
 import { DEFAULT_SECTOR_MACHINES } from './mockData/defaultMachines';
+import { DEFAULT_MAINTENANCE_WORK_ORDERS } from './mockData/defaultWorkOrders';
+import { DEFAULT_ALERTS } from './mockData/defaultAlerts';
+import { DEFAULT_DOWNTIME_LOGS } from './mockData/defaultDowntimeLogs';
+import { DEFAULT_SPARE_PARTS } from './mockData/defaultSpareParts';
+import { DEFAULT_INITIAL_USERS } from './mockData/defaultUsers';
 
 import { LoginView } from './components/views/LoginView';
 import { OverviewDashboard } from './components/views/OverviewDashboard';
@@ -27,10 +37,12 @@ import { SectorHeadDashboard } from './components/views/SectorHeadDashboard';
 import { TechnicianDashboard } from './components/views/TechnicianDashboard';
 
 import { SectorsView } from './components/views/SectorsView';
-import { EquipmentFleetView } from './components/views/EquipmentFleetView';
+import { DepartmentsView } from './components/views/DepartmentsView';
 import { AlertsView } from './components/views/AlertsView';
-import { WorkOrdersView } from './components/views/WorkOrdersView';
 import { UsersManagementView } from './components/views/UsersManagementView';
+import { ReportsView } from './components/views/ReportsView';
+import { EquipmentFleetView } from './components/views/EquipmentFleetView';
+import { WorkOrdersView } from './components/views/WorkOrdersView';
 import { SparePartsView } from './components/views/SparePartsView';
 import { AnalyticsView } from './components/views/AnalyticsView';
 import { NotificationsView } from './components/views/NotificationsView';
@@ -42,30 +54,12 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
 
-  // Navigation state
-  const [activeTab, setActiveTab] = useState('dashboard');
+  // Navigation state - default landing tab is Sectors
+  const [activeTab, setActiveTab] = useState('sectors');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sectorFilterOverride, setSectorFilterOverride] = useState('All');
-
-  // Default seed for pending user access so Department Head / Administrator can authorize immediately
-  const DEFAULT_INITIAL_USERS = [
-    {
-      name: 'raj',
-      email: 'rajvansh0@gmail.com',
-      role: ROLES.MECHANICAL_TECH,
-      title: 'Mechanical technician',
-      sector: 'Mechanical Department',
-      avatar: 'RJ',
-      employeeId: 'EMP-7492',
-      status: 'Pending Approval',
-      isApproved: false,
-      requestedAt: 'Just now',
-      description: 'Access requested as Mechanical technician (Mechanical Department). Approval routed to Mechanical Department Head.',
-      approverRole: ROLES.MECHANICAL_HEAD,
-      approverTitle: 'Mechanical Department Head'
-    }
-  ];
+  const [selectedSectorId, setSelectedSectorId] = useState(null);
 
   // Helper to compute pending approval count tailored to active user's approval authority
   const getPendingApprovalCountForUser = (currentUser) => {
@@ -75,7 +69,15 @@ export default function App() {
       return usersList.filter(
         (u) =>
           (u.status === 'Pending Approval' || (!u.isApproved && u.role !== ROLES.ADMIN)) &&
-          [ROLES.PRODUCTION_HEAD, ROLES.MECHANICAL_HEAD, ROLES.ELECTRICAL_HEAD].includes(u.role)
+          [
+            ROLES.SECTOR_HEAD_1,
+            ROLES.SECTOR_HEAD_2,
+            ROLES.SECTOR_HEAD_3,
+            ROLES.SECTOR_HEAD_4,
+            ROLES.PRODUCTION_HEAD,
+            ROLES.MECHANICAL_HEAD,
+            ROLES.ELECTRICAL_HEAD
+          ].includes(u.role)
       ).length;
     }
     if (currentUser.role === ROLES.MECHANICAL_HEAD) {
@@ -108,7 +110,7 @@ export default function App() {
       const saved = localStorage.getItem('industrialcare_users');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length >= 5) {
           return parsed;
         }
       }
@@ -121,10 +123,14 @@ export default function App() {
       const saved = localStorage.getItem('industrialcare_assets');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= 40) {
-          return parsed;
-        }
-        if (Array.isArray(parsed) && parsed.some(a => a.id && a.id.startsWith('MCH-S1-'))) {
+        if (
+          Array.isArray(parsed) &&
+          parsed.length >= 40 &&
+          parsed.some(a => a.id === 'SEC1M1' && a.predictionModel !== undefined) &&
+          parsed.some(a => a.id === 'SEC2M1') &&
+          parsed.some(a => a.id === 'SEC3M1') &&
+          parsed.some(a => a.id === 'SEC4M1')
+        ) {
           return parsed;
         }
       }
@@ -132,14 +138,66 @@ export default function App() {
     return DEFAULT_SECTOR_MACHINES;
   };
 
+  const getInitialWorkOrders = () => {
+    try {
+      const saved = localStorage.getItem('industrialcare_work_orders');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed.some(wo => wo.id === 'REQ-2026-101')) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return DEFAULT_MAINTENANCE_WORK_ORDERS;
+  };
+
+  const getInitialAlerts = () => {
+    try {
+      const saved = localStorage.getItem('industrialcare_alerts');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return DEFAULT_ALERTS;
+  };
+
+  const getInitialSpareParts = () => {
+    try {
+      const saved = localStorage.getItem('industrialcare_spare_parts');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return DEFAULT_SPARE_PARTS;
+  };
+
+  const getInitialDowntimeLogs = () => {
+    try {
+      const saved = localStorage.getItem('industrialcare_downtime_logs');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return DEFAULT_DOWNTIME_LOGS;
+  };
+
   // Operational Data States (persisted in localStorage, default 10 machines per sector)
   const [rawAssets, setRawAssets] = useState(getInitialAssets);
-  const [rawWorkOrders, setRawWorkOrders] = useState(() => loadStored('work_orders', []));
+  const [rawWorkOrders, setRawWorkOrders] = useState(getInitialWorkOrders);
   const [rawSensors, setRawSensors] = useState(() => loadStored('sensors', []));
-  const [rawAlerts, setRawAlerts] = useState(() => loadStored('alerts', []));
-  const [rawSpareParts, setRawSpareParts] = useState(() => loadStored('spare_parts', []));
+  const [rawAlerts, setRawAlerts] = useState(getInitialAlerts);
+  const [rawSpareParts, setRawSpareParts] = useState(getInitialSpareParts);
   const [rawPreventiveSchedules, setRawPreventiveSchedules] = useState(() => loadStored('preventive_schedules', []));
-  const [rawDowntimeLogs, setRawDowntimeLogs] = useState(() => loadStored('downtime_logs', []));
+  const [rawDowntimeLogs, setRawDowntimeLogs] = useState(getInitialDowntimeLogs);
   const [notifications, setNotifications] = useState(() => loadStored('notifications', []));
   const [usersList, setUsersList] = useState(getInitialUsers);
 
@@ -180,25 +238,30 @@ export default function App() {
     saveStored('users', usersList);
   }, [usersList]);
 
-  // Cross-tab synchronization via storage event listener
+  // Comprehensive cross-tab synchronization via storage event listener
   useEffect(() => {
     const handleStorageChange = (e) => {
-      if (e.key === 'industrialcare_users') {
-        try {
-          const parsed = JSON.parse(e.newValue);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setUsersList(parsed);
-          }
-        } catch {}
-      }
-      if (e.key === 'industrialcare_notifications') {
-        try {
-          const parsed = JSON.parse(e.newValue);
-          if (Array.isArray(parsed)) {
-            setNotifications(parsed);
-          }
-        } catch {}
-      }
+      if (!e.newValue) return;
+      try {
+        const parsed = JSON.parse(e.newValue);
+        if (e.key === 'industrialcare_assets' && Array.isArray(parsed)) {
+          setRawAssets(parsed);
+        } else if (e.key === 'industrialcare_work_orders' && Array.isArray(parsed)) {
+          setRawWorkOrders(parsed);
+        } else if (e.key === 'industrialcare_alerts' && Array.isArray(parsed)) {
+          setRawAlerts(parsed);
+        } else if (e.key === 'industrialcare_users' && Array.isArray(parsed)) {
+          setUsersList(parsed);
+        } else if (e.key === 'industrialcare_spare_parts' && Array.isArray(parsed)) {
+          setRawSpareParts(parsed);
+        } else if (e.key === 'industrialcare_downtime_logs' && Array.isArray(parsed)) {
+          setRawDowntimeLogs(parsed);
+        } else if (e.key === 'industrialcare_preventive_schedules' && Array.isArray(parsed)) {
+          setRawPreventiveSchedules(parsed);
+        } else if (e.key === 'industrialcare_notifications' && Array.isArray(parsed)) {
+          setNotifications(parsed);
+        }
+      } catch {}
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
@@ -209,10 +272,32 @@ export default function App() {
   const [isWorkOrderModalOpen, setIsWorkOrderModalOpen] = useState(false);
   const [isAddMachineModalOpen, setIsAddMachineModalOpen] = useState(false);
 
-  // Compute Role-Filtered Data
+  // Compute Role-Filtered Data (Strict RBAC Data-Level Boundary Enforcement)
   const roleAssets = user ? filterAssetsByRole(rawAssets, user.role, user) : [];
-  const roleWorkOrders = user ? filterWorkOrdersByRole(rawWorkOrders, user.role, rawAssets) : [];
+  const roleWorkOrders = user ? filterWorkOrdersByRole(rawWorkOrders, user) : [];
+  const roleAlerts = user ? filterAlertsByRole(rawAlerts, user) : [];
   const roleSensors = user ? filterSensorsByRole(rawSensors, user.role, rawAssets) : [];
+
+  // Security-Enforced Asset Selection Handler: prevents cross-sector access
+  const handleSelectAsset = (asset) => {
+    if (!asset) return;
+    if (user && !isAssetAllowedForUser(asset, user)) {
+      setNotifications((prev) => [
+        {
+          id: `NTF-${Date.now()}`,
+          title: 'Security Boundary Violation: Sector Clearance Denied',
+          desc: `User ${user?.name} (${user?.title}) attempted to access equipment ${asset.id} in ${asset.sector} without clearance.`,
+          time: 'Just now',
+          type: 'critical',
+          read: false
+        },
+        ...prev
+      ]);
+      alert(`Security Access Restriction: You are authenticated as ${user?.title || user?.name} (${user?.sector}). You do not have clearance to inspect machinery or telemetry in ${asset.sector}.`);
+      return;
+    }
+    setSelectedAsset(asset);
+  };
 
   // Auth Handlers
   const handleLogin = (userInfo) => {
@@ -228,7 +313,7 @@ export default function App() {
       setUsersList(latestUsers);
       setUser(adminUser);
       setIsLoggedIn(true);
-      setActiveTab('dashboard');
+      setActiveTab('sectors');
       return;
     }
 
@@ -250,7 +335,7 @@ export default function App() {
       };
       setUser(mergedUser);
       setIsLoggedIn(true);
-      const defaultTab = ROLE_PERMISSIONS[mergedUser.role]?.defaultTab || 'dashboard';
+      const defaultTab = ROLE_PERMISSIONS[mergedUser.role]?.defaultTab || 'sectors';
       setActiveTab(defaultTab);
     } else {
       // New user logging in for the first time: route to proper approver
@@ -331,6 +416,26 @@ export default function App() {
   };
 
   const handleApproveUser = (userEmail) => {
+    const targetUser = usersList.find((u) => u.email.toLowerCase() === userEmail.toLowerCase());
+    if (!targetUser) return;
+
+    // Strict Backend/API Permission Guard: check designated approver authority
+    if (!canUserApproveTarget(user, targetUser)) {
+      alert(`Security Access Restriction: You (${user?.title || user?.role}) do not have authorization to approve ${targetUser.name} (${targetUser.title}). Approval must be performed by ${targetUser.approverTitle || 'designated approver'}.`);
+      setNotifications((prev) => [
+        {
+          id: `NTF-${Date.now()}`,
+          title: 'Unauthorized Approval Attempt Blocked',
+          desc: `${user?.title || user?.name} attempted to approve ${targetUser.name} (${targetUser.title}) without designated authority.`,
+          time: 'Just now',
+          type: 'critical',
+          read: false
+        },
+        ...prev
+      ]);
+      return;
+    }
+
     const approverName = user ? user.name : 'Authorized Approver';
     const approverRole = user ? (user.title || user.role) : 'Department Head / Admin';
 
@@ -352,18 +457,16 @@ export default function App() {
 
     if (user && user.email.toLowerCase() === userEmail.toLowerCase()) {
       setUser((prev) => ({ ...prev, status: 'Active', isApproved: true }));
-      const defaultTab = ROLE_PERMISSIONS[user.role]?.defaultTab || 'dashboard';
+      const defaultTab = ROLE_PERMISSIONS[user.role]?.defaultTab || 'sectors';
       setActiveTab(defaultTab);
     }
 
-    const currentUsers = getInitialUsers();
-    const targetUser = currentUsers.find((u) => u.email.toLowerCase() === userEmail.toLowerCase());
     setNotifications((prev) => {
       const next = [
         {
           id: `NTF-${Date.now()}`,
           title: 'User Access Approved',
-          desc: `${approverRole} approved operational access for ${targetUser ? targetUser.name : userEmail} (${targetUser?.title || 'Personnel'}).`,
+          desc: `${approverRole} approved operational access for ${targetUser.name} (${targetUser.title || 'Personnel'}).`,
           time: 'Just now',
           type: 'info',
           read: false
@@ -376,6 +479,15 @@ export default function App() {
   };
 
   const handleRejectUser = (userEmail) => {
+    const targetUser = usersList.find((u) => u.email.toLowerCase() === userEmail.toLowerCase());
+    if (!targetUser) return;
+
+    // Strict Backend/API Permission Guard: check designated rejector authority
+    if (!canUserApproveTarget(user, targetUser)) {
+      alert(`Security Access Restriction: You (${user?.title || user?.role}) do not have authorization to reject ${targetUser.name} (${targetUser.title}).`);
+      return;
+    }
+
     const rejectorName = user ? user.name : 'Authorized Approver';
     const rejectorRole = user ? (user.title || user.role) : 'Department Head / Admin';
 
@@ -399,14 +511,12 @@ export default function App() {
       setUser((prev) => ({ ...prev, status: 'Rejected', isApproved: false }));
     }
 
-    const currentUsers = getInitialUsers();
-    const targetUser = currentUsers.find((u) => u.email.toLowerCase() === userEmail.toLowerCase());
     setNotifications((prev) => {
       const next = [
         {
           id: `NTF-${Date.now()}`,
           title: 'User Access Request Rejected',
-          desc: `${rejectorRole} rejected access request for ${targetUser ? targetUser.name : userEmail}.`,
+          desc: `${rejectorRole} rejected access request for ${targetUser.name}.`,
           time: 'Just now',
           type: 'warning',
           read: false
@@ -436,8 +546,12 @@ export default function App() {
     setUser(null);
   };
 
-  // Machine Management Handlers
+  // Machine Management Handlers (Admin Only Clearance Required)
   const handleAddMachine = (newMachine) => {
+    if (user?.role !== ROLES.ADMIN) {
+      alert('Security Access Restriction: Only System Administrator has clearance to add new machinery to the plant fleet.');
+      return;
+    }
     setRawAssets((prev) => {
       const next = [newMachine, ...prev];
       saveStored('assets', next);
@@ -459,6 +573,10 @@ export default function App() {
   };
 
   const handleEditMachine = (updatedAsset) => {
+    if (user?.role !== ROLES.ADMIN) {
+      alert('Security Access Restriction: Only System Administrator has clearance to modify machinery technical specifications.');
+      return;
+    }
     setRawAssets((prev) => {
       const next = prev.map((ast) => (ast.id === updatedAsset.id ? updatedAsset : ast));
       saveStored('assets', next);
@@ -485,6 +603,10 @@ export default function App() {
   };
 
   const handleDeactivateMachine = (assetId) => {
+    if (user?.role !== ROLES.ADMIN) {
+      alert('Security Access Restriction: Only System Administrator has clearance to deactivate or reactivate equipment.');
+      return;
+    }
     setRawAssets((prev) => {
       const next = prev.map((ast) => {
         if (ast.id === assetId) {
@@ -562,8 +684,23 @@ export default function App() {
     );
   };
 
-  // Sector Head Actions
+  // Sector Head & Department Head Task Actions with Strict RBAC Guards
   const handleAssignTask = (taskId, techName) => {
+    const targetWO = rawWorkOrders.find((w) => w.id === taskId);
+    if (targetWO && user && user.role !== ROLES.ADMIN) {
+      if (user.role === ROLES.MECHANICAL_HEAD && !targetWO.department?.toLowerCase().includes('mech') && !targetWO.assignedDepartment?.toLowerCase().includes('mech')) {
+        alert('Security Access Restriction: Mechanical Department Head can only assign technicians to mechanical tasks.');
+        return;
+      }
+      if (user.role === ROLES.ELECTRICAL_HEAD && !targetWO.department?.toLowerCase().includes('elec') && !targetWO.assignedDepartment?.toLowerCase().includes('elec')) {
+        alert('Security Access Restriction: Electrical Department Head can only assign technicians to electrical tasks.');
+        return;
+      }
+      if (isSectorHeadRole(user.role) && !isSectorAllowedForUser(targetWO.sector, user)) {
+        alert(`Security Access Restriction: Sector Head can only assign tasks in their own sector (${user.sector}).`);
+        return;
+      }
+    }
     setRawWorkOrders((prev) =>
       prev.map((w) => (w.id === taskId ? { ...w, assignedTo: techName } : w))
     );
@@ -595,6 +732,22 @@ export default function App() {
   };
 
   const handleReviseDeadline = (taskId, newDate, reason) => {
+    const targetWO = rawWorkOrders.find((w) => w.id === taskId);
+    if (!targetWO) return;
+
+    if (user && user.role !== ROLES.ADMIN) {
+      const isAuthorizedSectorHead = isSectorHeadRole(user.role) && isSectorAllowedForUser(targetWO.sector, user);
+      if (!isAuthorizedSectorHead) {
+        alert(`Security Access Restriction: Only the Sector Head of ${targetWO.sector} has authority to revise maintenance deadlines.`);
+        return;
+      }
+    }
+
+    if (!reason || !reason.trim()) {
+      alert('A mandatory justification reason is required to revise a maintenance deadline.');
+      return;
+    }
+
     setRawWorkOrders((prev) =>
       prev.map((w) => (w.id === taskId ? { ...w, dueDate: newDate, deadlineRevisionReason: reason } : w))
     );
@@ -612,6 +765,17 @@ export default function App() {
   };
 
   const handleEscalateTask = (taskId) => {
+    const targetWO = rawWorkOrders.find((w) => w.id === taskId);
+    if (!targetWO) return;
+
+    if (user && user.role !== ROLES.ADMIN) {
+      const isAuthorizedSectorHead = isSectorHeadRole(user.role) && isSectorAllowedForUser(targetWO.sector, user);
+      if (!isAuthorizedSectorHead) {
+        alert(`Security Access Restriction: Only the Sector Head of ${targetWO.sector} has authority to escalate tasks.`);
+        return;
+      }
+    }
+
     setRawWorkOrders((prev) =>
       prev.map((w) => (w.id === taskId ? { ...w, priority: 'High' } : w))
     );
@@ -629,6 +793,17 @@ export default function App() {
   };
 
   const handleVerifyCloseTask = (taskId, feedback) => {
+    const targetWO = rawWorkOrders.find((w) => w.id === taskId);
+    if (!targetWO) return;
+
+    if (user && user.role !== ROLES.ADMIN) {
+      const isAuthorizedSectorHead = isSectorHeadRole(user.role) && isSectorAllowedForUser(targetWO.sector, user);
+      if (!isAuthorizedSectorHead) {
+        alert(`Security Access Restriction: Only the Sector Head of ${targetWO.sector} has authority to verify and close tasks.`);
+        return;
+      }
+    }
+
     setRawWorkOrders((prev) =>
       prev.map((w) => (w.id === taskId ? { ...w, status: 'Completed', verificationFeedback: feedback } : w))
     );
@@ -646,6 +821,17 @@ export default function App() {
   };
 
   const handleReopenTask = (taskId, feedback) => {
+    const targetWO = rawWorkOrders.find((w) => w.id === taskId);
+    if (!targetWO) return;
+
+    if (user && user.role !== ROLES.ADMIN) {
+      const isAuthorizedSectorHead = isSectorHeadRole(user.role) && isSectorAllowedForUser(targetWO.sector, user);
+      if (!isAuthorizedSectorHead) {
+        alert(`Security Access Restriction: Only the Sector Head of ${targetWO.sector} has authority to reject and reopen tasks.`);
+        return;
+      }
+    }
+
     setRawWorkOrders((prev) =>
       prev.map((w) => (w.id === taskId ? { ...w, status: 'In Progress', verificationFeedback: feedback } : w))
     );
@@ -686,9 +872,442 @@ export default function App() {
     ]);
   };
 
-  // Alert Handlers for Part 6
-  const handleResolveAlert = (alertId) => {
-    handleUpdateAlertStatus(alertId, 'Resolved', 'Resolved via quick action.');
+  // Detailed 6-Stage Maintenance Workflow Transition Handler
+  // Workflow: Open -> Acknowledged -> In Progress -> Resolution Submitted -> Verified and Resolved -> Closed
+  const handleWorkflowTransition = (workOrderId, targetStatus, payload = {}) => {
+    const wo = rawWorkOrders.find((w) => w.id === workOrderId);
+    if (!wo) return;
+
+    // Strict Permission Guard 1: Verify sector clearance for Sector Head
+    if (user && isSectorHeadRole(user.role)) {
+      if (!isSectorAllowedForUser(wo.sector, user)) {
+        alert(`Security Access Restriction: You are authenticated as Sector Head for ${user.sector}. You do not have clearance to update work orders in ${wo.sector}.`);
+        return;
+      }
+    }
+
+    // Strict Permission Guard 2: Only Sector Head of that sector (or Admin) can verify/close or reject resolutions
+    if (targetStatus === 'Closed' || (targetStatus === 'In Progress' && payload.reason)) {
+      const isAuthorizedSectorHead = user?.role === ROLES.ADMIN || (
+        isSectorHeadRole(user?.role) && isSectorAllowedForUser(wo.sector, user)
+      );
+      if (!isAuthorizedSectorHead) {
+        alert(`Security Access Restriction: Only the designated Sector Head for ${wo.sector} (or Administrator) has authority to verify or reject repair resolutions.`);
+        return;
+      }
+    }
+
+    // Strict Permission Guard 3: Technicians cannot verify and close repair tickets
+    if ((user?.role === ROLES.MECHANICAL_TECH || user?.role === ROLES.ELECTRICAL_TECH) && targetStatus === 'Closed') {
+      alert('Security Access Restriction: Technicians cannot verify and close repair tickets. A Sector Head must inspect and approve.');
+      return;
+    }
+
+    const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const actorName = user ? user.name : (payload.actorName || 'Authorized User');
+    const actorRole = user ? (user.title || user.role) : (payload.actorRole || 'Maintenance Staff');
+
+    let affectedAssetId = null;
+
+    setRawWorkOrders((prev) =>
+      prev.map((item) => {
+        if (item.id === workOrderId) {
+          affectedAssetId = item.assetId;
+
+          let updatedLaborHours = item.laborHours;
+          let updatedNotes = item.technicianNotes;
+          let updatedParts = item.replacedParts || [];
+          let updatedResolutionPeriod = item.resolutionPeriod;
+          let updatedResolvedAt = item.resolvedAt;
+          let updatedVerifiedBy = item.verifiedBy;
+          let updatedFeedback = item.verificationFeedback;
+
+          if (payload.laborHours !== undefined) updatedLaborHours = payload.laborHours;
+          if (payload.technicianNotes !== undefined) updatedNotes = payload.technicianNotes;
+          if (payload.replacedParts !== undefined) updatedParts = payload.replacedParts;
+          if (payload.verificationFeedback !== undefined) updatedFeedback = payload.verificationFeedback;
+
+          // When transitioning to Verified and Resolved or Closed: calculate REAL resolution period (never invented)
+          if (targetStatus === 'Closed' || targetStatus === 'Verified and Resolved') {
+            updatedResolvedAt = timestamp;
+            updatedVerifiedBy = actorName;
+            if (item.createdAt) {
+              const start = new Date(item.createdAt.replace(' ', 'T')).getTime();
+              const end = new Date().getTime();
+              const diffMs = Math.max(0, end - start);
+              const diffHrs = Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10;
+              if (diffHrs >= 24) {
+                const days = Math.floor(diffHrs / 24);
+                const remHrs = Math.round((diffHrs % 24) * 10) / 10;
+                updatedResolutionPeriod = `${days} day${days > 1 ? 's' : ''} ${remHrs} hrs`;
+              } else {
+                updatedResolutionPeriod = `${diffHrs} hours`;
+              }
+            } else {
+              updatedResolutionPeriod = 'Completed';
+            }
+          }
+
+          const newTimelineEntry = {
+            id: `AUD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            status: targetStatus,
+            action: payload.actionTitle || `Workflow Advanced to ${targetStatus}`,
+            timestamp,
+            user: actorName,
+            role: actorRole,
+            reason: payload.reason || payload.notes || `Request transitioned to ${targetStatus}.`,
+            laborHours: payload.laborHours || undefined
+          };
+
+          return {
+            ...item,
+            status: targetStatus,
+            laborHours: updatedLaborHours,
+            technicianNotes: updatedNotes,
+            replacedParts: updatedParts,
+            resolutionPeriod: updatedResolutionPeriod,
+            resolvedAt: updatedResolvedAt,
+            verifiedBy: updatedVerifiedBy,
+            verificationFeedback: updatedFeedback,
+            auditTimeline: [newTimelineEntry, ...(item.auditTimeline || [])]
+          };
+        }
+        return item;
+      })
+    );
+
+    // If ticket is closed, restore machine operational status from Warning/Critical to Operational
+    if (targetStatus === 'Closed' && affectedAssetId) {
+      setRawAssets((prev) =>
+        prev.map((a) => {
+          if (a.id === affectedAssetId) {
+            return {
+              ...a,
+              status: 'Operational',
+              maintenancePending: false,
+              healthScore: Math.min(100, Math.max(90, (a.healthScore || 70) + 25))
+            };
+          }
+          return a;
+        })
+      );
+      if (selectedAsset && selectedAsset.id === affectedAssetId) {
+        setSelectedAsset((prev) => ({
+          ...prev,
+          status: 'Operational',
+          maintenancePending: false,
+          healthScore: Math.min(100, Math.max(90, (prev.healthScore || 70) + 25))
+        }));
+      }
+    }
+
+    setNotifications((prev) => [
+      {
+        id: `NTF-${Date.now()}`,
+        title: `Work Order ${workOrderId}: ${targetStatus}`,
+        desc: `${actorName} transitioned ticket to ${targetStatus}. ${payload.notes || ''}`,
+        time: 'Just now',
+        type: targetStatus === 'Closed' ? 'success' : targetStatus === 'In Progress' ? 'warning' : 'info',
+        read: false
+      },
+      ...prev
+    ]);
+  };
+
+  // Re-request maintenance when deadline expired: creates linked follow-up while preserving original request
+  const handleRequestMaintenanceAgain = (originalRequestId, { reason, dueDate, priority = 'Critical', assignedDepartment, assignedTech }) => {
+    const originalTicket = rawWorkOrders.find((w) => w.id === originalRequestId);
+    if (!originalTicket) return;
+
+    // Strict Permission Guard: Sector Head can only request maintenance again for their own sector
+    if (user && user.role !== ROLES.ADMIN) {
+      const isAuthorized = isSectorHeadRole(user.role) && isSectorAllowedForUser(originalTicket.sector, user);
+      if (!isAuthorized) {
+        alert(`Security Access Restriction: Only the Sector Head of ${originalTicket.sector} has authority to issue follow-up maintenance requests.`);
+        return;
+      }
+    }
+
+    const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const actorName = user ? user.name : 'Authorized Requester';
+    const actorRole = user ? (user.title || user.role) : 'Sector Head / Maintenance Lead';
+
+    let followUpId = `REQ-2026-${Math.floor(200 + Math.random() * 800)}`;
+    while (rawWorkOrders.some((w) => w.id === followUpId)) {
+      followUpId = `REQ-2026-${Math.floor(200 + Math.random() * 800)}`;
+    }
+
+    const newFollowUpTicket = {
+      id: followUpId,
+      assetId: originalTicket.assetId,
+      assetName: originalTicket.assetName,
+      sector: originalTicket.sector,
+      department: originalTicket.department,
+      assignedDepartment: assignedDepartment || originalTicket.assignedDepartment || originalTicket.department,
+      assignedTech: assignedTech || originalTicket.assignedTech || 'Unassigned',
+      status: 'Open',
+      priority: priority,
+      type: `Escalated Follow-Up: ${originalTicket.type || 'Corrective Servicing'}`,
+      createdAt: timestamp,
+      dueDate: dueDate || new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+      description: `Follow-up work order created following deadline expiration of parent ticket ${originalRequestId}. Escalation Reason: ${reason}`,
+      laborHours: null,
+      technicianNotes: null,
+      replacedParts: [],
+      resolutionPeriod: null,
+      resolvedAt: null,
+      verifiedBy: null,
+      verificationFeedback: null,
+      parentRequestId: originalRequestId,
+      followUpRequestId: null,
+      hasActiveFollowUp: false,
+      auditTimeline: [
+        {
+          id: `AUD-${Date.now()}-1`,
+          status: 'Open',
+          action: 'Escalated Follow-Up Request Dispatched',
+          timestamp,
+          user: actorName,
+          role: actorRole,
+          reason: `Linked follow-up dispatched for parent request ${originalRequestId}. Escalation justification: ${reason}`
+        }
+      ]
+    };
+
+    // Update parent work order: link followUpRequestId and mark hasActiveFollowUp: true, preserving original and its audit log
+    setRawWorkOrders((prev) => [
+      newFollowUpTicket,
+      ...prev.map((w) => {
+        if (w.id === originalRequestId) {
+          const updatedTimeline = [
+            {
+              id: `AUD-${Date.now()}-2`,
+              status: w.status,
+              action: `Linked Follow-Up Request Generated (${followUpId})`,
+              timestamp,
+              user: actorName,
+              role: actorRole,
+              reason: `Deadline expired (${w.dueDate}). User requested maintenance again: ${reason}`
+            },
+            ...(w.auditTimeline || [])
+          ];
+          return {
+            ...w,
+            followUpRequestId: followUpId,
+            hasActiveFollowUp: true,
+            auditTimeline: updatedTimeline
+          };
+        }
+        return w;
+      })
+    ]);
+
+    setNotifications((prev) => [
+      {
+        id: `NTF-${Date.now()}`,
+        title: 'Linked Maintenance Re-Requested',
+        desc: `New follow-up work order ${followUpId} dispatched for ${originalTicket.assetName}. Parent ticket ${originalRequestId} preserved in audit.`,
+        time: 'Just now',
+        type: 'warning',
+        read: false
+      },
+      ...prev
+    ]);
+  };
+
+  // Alert Handlers for Incident & Failure Resolution
+  const handleResolveAlert = (alertId, resolutionNotes, resolutionDetails = {}) => {
+    handleUpdateAlertStatus(alertId, 'Resolved', resolutionNotes || 'Technician submitted resolution.', resolutionDetails);
+  };
+
+  const handleAcknowledgeAlert = (alertId) => {
+    const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    const actorName = user ? user.name : 'Authorized Specialist';
+    const actorRole = user ? (user.title || user.role) : 'Technician';
+
+    setRawAlerts((prev) =>
+      prev.map((alt) => {
+        if (alt.id === alertId) {
+          const updatedTimeline = [
+            ...(alt.auditTimeline || []),
+            {
+              id: `TL-${Date.now()}`,
+              timestamp,
+              actor: actorName,
+              role: actorRole,
+              action: 'Acknowledged Alert',
+              notes: `${actorRole} acknowledged alert assignment.`
+            }
+          ];
+          return {
+            ...alt,
+            status: 'Acknowledged',
+            maintenanceStatus: 'Acknowledged',
+            auditTimeline: updatedTimeline
+          };
+        }
+        return alt;
+      })
+    );
+
+    setNotifications((prev) => [
+      {
+        id: `NTF-${Date.now()}`,
+        title: 'Alert Acknowledged',
+        desc: `${actorName} acknowledged failure alert ${alertId}.`,
+        time: 'Just now',
+        type: 'info',
+        read: false
+      },
+      ...prev
+    ]);
+  };
+
+  const handleAssignAlert = (alertId, techName, notes) => {
+    const targetAlert = rawAlerts.find((a) => a.id === alertId);
+    if (!targetAlert) return;
+
+    // RBAC Clearance Check: Admin, Dept Head (for their dept), Sector Head (for their sector)
+    if (user && user.role !== ROLES.ADMIN) {
+      if (user.role === ROLES.MECHANICAL_HEAD && !targetAlert.department?.toLowerCase().includes('mech')) {
+        alert('Security Access Restriction: Mechanical Department Head can only assign mechanical alerts.');
+        return;
+      }
+      if (user.role === ROLES.ELECTRICAL_HEAD && !targetAlert.department?.toLowerCase().includes('elec')) {
+        alert('Security Access Restriction: Electrical Department Head can only assign electrical alerts.');
+        return;
+      }
+      if (isSectorHeadRole(user.role) && !isSectorAllowedForUser(targetAlert.sector, user)) {
+        alert(`Security Access Restriction: Sector Head can only assign alerts in their own sector (${user.sector}).`);
+        return;
+      }
+    }
+
+    const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    const actorName = user ? user.name : 'Operations Lead';
+    const actorRole = user ? (user.title || user.role) : 'Department Head';
+
+    setRawAlerts((prev) =>
+      prev.map((alt) => {
+        if (alt.id === alertId) {
+          const updatedTimeline = [
+            ...(alt.auditTimeline || []),
+            {
+              id: `TL-${Date.now()}`,
+              timestamp,
+              actor: actorName,
+              role: actorRole,
+              action: `Assigned to ${techName}`,
+              notes: notes || `Technician ${techName} assigned to resolve anomaly.`
+            }
+          ];
+          return {
+            ...alt,
+            assignedTech: techName,
+            auditTimeline: updatedTimeline
+          };
+        }
+        return alt;
+      })
+    );
+
+    setNotifications((prev) => [
+      {
+        id: `NTF-${Date.now()}`,
+        title: 'Technician Assigned',
+        desc: `Alert ${alertId} assigned to specialist ${techName}.`,
+        time: 'Just now',
+        type: 'info',
+        read: false
+      },
+      ...prev
+    ]);
+  };
+
+  const handleCreateFollowUpAlert = (originalAlertId, { reason, dueDate, priority = 'Critical', assignedDepartment, assignedTech }) => {
+    const parentAlert = rawAlerts.find((a) => a.id === originalAlertId);
+    if (!parentAlert) return;
+
+    if (user && user.role !== ROLES.ADMIN) {
+      const isAuthorized = isSectorHeadRole(user.role) && isSectorAllowedForUser(parentAlert.sector, user);
+      if (!isAuthorized) {
+        alert(`Security Access Restriction: Only the Sector Head of ${parentAlert.sector} has authority to issue follow-up alerts.`);
+        return;
+      }
+    }
+
+    const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    const actorName = user ? user.name : 'Sector Head';
+    const actorRole = user ? (user.title || user.role) : 'Sector Head';
+
+    const followUpId = `ALT-FLW-${Math.floor(100 + Math.random() * 900)}`;
+
+    const newFollowUpAlert = {
+      ...parentAlert,
+      id: followUpId,
+      title: `Escalated Follow-Up: ${parentAlert.title}`,
+      description: `Escalated follow-up issued following parent alert ${originalAlertId}. Reason: ${reason}`,
+      severity: priority === 'Critical' ? 'Critical' : 'Warning',
+      status: 'New',
+      createdTime: timestamp,
+      date: timestamp,
+      deadline: dueDate || new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+      overdue: false,
+      escalated: true,
+      escalatedReason: reason,
+      maintenanceStatus: 'Open',
+      parentAlertId: originalAlertId,
+      hasActiveFollowUp: false,
+      followUpAlertId: null,
+      auditTimeline: [
+        {
+          id: `TL-${Date.now()}-1`,
+          timestamp,
+          actor: actorName,
+          role: actorRole,
+          action: 'Escalated Follow-Up Alert Generated',
+          notes: `Linked follow-up dispatched for parent alert ${originalAlertId}. Escalation: ${reason}`
+        }
+      ]
+    };
+
+    setRawAlerts((prev) => [
+      newFollowUpAlert,
+      ...prev.map((alt) => {
+        if (alt.id === originalAlertId) {
+          const updatedTimeline = [
+            ...(alt.auditTimeline || []),
+            {
+              id: `TL-${Date.now()}-2`,
+              timestamp,
+              actor: actorName,
+              role: actorRole,
+              action: `Linked Follow-Up Generated (${followUpId})`,
+              notes: `Overdue/unresolved task escalated: ${reason}`
+            }
+          ];
+          return {
+            ...alt,
+            hasActiveFollowUp: true,
+            followUpAlertId: followUpId,
+            auditTimeline: updatedTimeline
+          };
+        }
+        return alt;
+      })
+    ]);
+
+    setNotifications((prev) => [
+      {
+        id: `NTF-${Date.now()}`,
+        title: 'Linked Follow-Up Alert Dispatched',
+        desc: `Follow-up ${followUpId} generated for ${parentAlert.machineName}. Parent alert ${originalAlertId} preserved in audit.`,
+        time: 'Just now',
+        type: 'warning',
+        read: false
+      },
+      ...prev
+    ]);
   };
 
   const handleCreateAlert = (newAlert) => {
@@ -704,7 +1323,7 @@ export default function App() {
     setNotifications((prev) => [newNotif, ...prev]);
   };
 
-  const handleUpdateAlertStatus = (alertId, newStatus, techNotes) => {
+  const handleUpdateAlertStatus = (alertId, newStatus, techNotes, resolutionPayload = {}) => {
     const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
     setRawAlerts((prev) =>
       prev.map((alt) => {
@@ -720,9 +1339,18 @@ export default function App() {
               notes: techNotes || `Alert status updated to ${newStatus}`
             }
           ];
+
+          let laborHours = alt.laborHours;
+          let replacedParts = alt.replacedParts || [];
+          if (resolutionPayload.laborHours !== undefined) laborHours = resolutionPayload.laborHours;
+          if (resolutionPayload.replacedParts !== undefined) replacedParts = resolutionPayload.replacedParts;
+
           return {
             ...alt,
             status: newStatus,
+            maintenanceStatus: newStatus === 'Resolved' ? 'Resolution Submitted' : newStatus,
+            laborHours,
+            replacedParts,
             technicianNotes: techNotes || alt.technicianNotes,
             auditTimeline: updatedTimeline
           };
@@ -782,6 +1410,23 @@ export default function App() {
   };
 
   const handleReviseAlertDeadline = (alertId, newDate, reason) => {
+    const targetAlert = rawAlerts.find((a) => a.id === alertId);
+    if (!targetAlert) return;
+
+    // Strict Permission Guard: Sector Head can only revise deadlines for their sector
+    if (user && user.role !== ROLES.ADMIN) {
+      const isAuthorizedSectorHead = isSectorHeadRole(user.role) && isSectorAllowedForUser(targetAlert.sector, user);
+      if (!isAuthorizedSectorHead) {
+        alert(`Security Access Restriction: Only the Sector Head of ${targetAlert.sector} has authority to revise alert deadlines.`);
+        return;
+      }
+    }
+
+    if (!reason || !reason.trim()) {
+      alert('A mandatory reason is required to revise an alert deadline.');
+      return;
+    }
+
     const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
     setRawAlerts((prev) =>
       prev.map((alt) => {
@@ -869,7 +1514,22 @@ export default function App() {
   };
 
   const handleVerifyCloseAlert = (alertId, feedback) => {
+    const targetAlert = rawAlerts.find((a) => a.id === alertId);
+    if (!targetAlert) return;
+
+    // Strict RBAC Guard: Admin or designated Sector Head
+    if (user && user.role !== ROLES.ADMIN) {
+      const isAuthorizedSectorHead = isSectorHeadRole(user.role) && isSectorAllowedForUser(targetAlert.sector, user);
+      if (!isAuthorizedSectorHead) {
+        alert(`Security Access Restriction: Only the Sector Head of ${targetAlert.sector} (or Administrator) has clearance to verify and close alerts.`);
+        return;
+      }
+    }
+
     const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    const actorName = user ? user.name : 'Sector Head';
+    const actorRole = user ? (user.title || user.role) : 'Sector Head';
+
     setRawAlerts((prev) =>
       prev.map((alt) => {
         if (alt.id === alertId) {
@@ -878,23 +1538,45 @@ export default function App() {
             {
               id: `TL-${Date.now()}`,
               timestamp,
-              actor: user ? user.name : 'Sector Head',
-              role: user ? user.title : 'Head of Sector',
+              actor: actorName,
+              role: actorRole,
               action: 'Verified & Closed Incident',
               notes: feedback || 'Repair verified and approved by Sector Head.'
             }
           ];
-          return { ...alt, status: 'Closed', auditTimeline: updatedTimeline };
+          return {
+            ...alt,
+            status: 'Closed',
+            maintenanceStatus: 'Closed',
+            auditTimeline: updatedTimeline
+          };
         }
         return alt;
       })
     );
 
+    // If machine has no other open critical alerts, restore machine status to Operational
+    if (targetAlert.machineId) {
+      setRawAssets((prev) =>
+        prev.map((ast) => {
+          if (ast.id === targetAlert.machineId) {
+            return {
+              ...ast,
+              status: 'Operational',
+              maintenancePending: false,
+              healthScore: Math.min(100, Math.max(90, (ast.healthScore || 70) + 20))
+            };
+          }
+          return ast;
+        })
+      );
+    }
+
     setNotifications((prev) => [
       {
         id: `NTF-${Date.now()}`,
         title: 'Incident Verified & Closed',
-        desc: `Sector Head approved resolution for ${alertId}. Incident closed.`,
+        desc: `${actorRole} approved resolution for ${alertId}. Incident closed.`,
         time: 'Just now',
         type: 'info',
         read: false
@@ -904,7 +1586,21 @@ export default function App() {
   };
 
   const handleReopenAlert = (alertId, feedback) => {
+    const targetAlert = rawAlerts.find((a) => a.id === alertId);
+    if (!targetAlert) return;
+
+    if (user && user.role !== ROLES.ADMIN) {
+      const isAuthorizedSectorHead = isSectorHeadRole(user.role) && isSectorAllowedForUser(targetAlert.sector, user);
+      if (!isAuthorizedSectorHead) {
+        alert(`Security Access Restriction: Only the Sector Head of ${targetAlert.sector} (or Administrator) has clearance to reopen alerts.`);
+        return;
+      }
+    }
+
     const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    const actorName = user ? user.name : 'Sector Head';
+    const actorRole = user ? (user.title || user.role) : 'Sector Head';
+
     setRawAlerts((prev) =>
       prev.map((alt) => {
         if (alt.id === alertId) {
@@ -913,13 +1609,18 @@ export default function App() {
             {
               id: `TL-${Date.now()}`,
               timestamp,
-              actor: user ? user.name : 'Sector Head',
-              role: user ? user.title : 'Head of Sector',
+              actor: actorName,
+              role: actorRole,
               action: 'Reopened Incident',
               notes: feedback || 'Repair rejected; reopened for further technician servicing.'
             }
           ];
-          return { ...alt, status: 'Reopened', auditTimeline: updatedTimeline };
+          return {
+            ...alt,
+            status: 'Reopened',
+            maintenanceStatus: 'In Progress',
+            auditTimeline: updatedTimeline
+          };
         }
         return alt;
       })
@@ -999,29 +1700,42 @@ export default function App() {
     ]);
   };
 
-  // Spare Parts Handlers for Part 7
+  // Spare Parts Handlers (Admin & Department Heads Authority)
   const handleAddSparePart = (newPart) => {
+    const canManageSpares = user?.role === ROLES.ADMIN || user?.role === ROLES.MECHANICAL_HEAD || user?.role === ROLES.ELECTRICAL_HEAD;
+    if (!canManageSpares) {
+      alert('Security Access Restriction: Only Department Heads and System Administrator have clearance to register new spare parts.');
+      return;
+    }
     setRawSpareParts((prev) => [newPart, ...prev]);
-    setNotifications((prev) => [
-      {
-        id: `NTF-${Date.now()}`,
-        title: 'New Spare Component Registered',
-        desc: `Component ${newPart.id} (${newPart.name}) added to stock inventory.`,
-        time: 'Just now',
-        type: 'info',
-        read: false
-      },
-      ...prev
-    ]);
+    const newNotif = {
+      id: `NTF-${Date.now()}`,
+      title: 'New Spare Component Registered',
+      desc: `Component ${newPart.id} (${newPart.name}) added to stock inventory.`,
+      time: 'Just now',
+      type: 'info',
+      read: false
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
   };
 
   const handleEditSparePart = (updatedPart) => {
+    const canManageSpares = user?.role === ROLES.ADMIN || user?.role === ROLES.MECHANICAL_HEAD || user?.role === ROLES.ELECTRICAL_HEAD;
+    if (!canManageSpares) {
+      alert('Security Access Restriction: Only Department Heads and System Administrator have clearance to edit spare parts.');
+      return;
+    }
     setRawSpareParts((prev) =>
       prev.map((p) => (p.id === updatedPart.id ? updatedPart : p))
     );
   };
 
   const handleAdjustSparePartStock = (partId, mode, quantity, note) => {
+    const canManageSpares = user?.role === ROLES.ADMIN || user?.role === ROLES.MECHANICAL_HEAD || user?.role === ROLES.ELECTRICAL_HEAD;
+    if (!canManageSpares) {
+      alert('Security Access Restriction: Only Department Heads and System Administrator have clearance to adjust spare parts inventory.');
+      return;
+    }
     setRawSpareParts((prev) =>
       prev.map((part) => {
         if (part.id === partId) {
@@ -1106,6 +1820,7 @@ export default function App() {
         setMobileOpen={setMobileOpen}
         user={user}
         pendingApprovalCount={getPendingApprovalCountForUser(user)}
+        openAlertsCount={rawAlerts.filter(a => a.status === 'Active' || a.status === 'Open').length}
       />
 
       {/* Main Content Area */}
@@ -1127,7 +1842,7 @@ export default function App() {
           {!isTabAllowed ? (
             <UnauthorizedAccess
               userRole={user.title || user.role}
-              onReturnHome={() => setActiveTab(ROLE_PERMISSIONS[user.role]?.defaultTab || 'dashboard')}
+              onReturnHome={() => setActiveTab(ROLE_PERMISSIONS[user.role]?.defaultTab || 'sectors')}
             />
           ) : (
             <>
@@ -1164,8 +1879,8 @@ export default function App() {
                   <OverviewDashboard
                     assets={roleAssets}
                     workOrders={roleWorkOrders}
-                    alerts={rawAlerts}
-                    onSelectAsset={(asset) => setSelectedAsset(asset)}
+                    alerts={roleAlerts}
+                    onSelectAsset={handleSelectAsset}
                     onNavigateTab={(tab) => setActiveTab(tab)}
                     onOpenAddMachineModal={() => setIsAddMachineModalOpen(true)}
                     onOpenWorkOrderModal={() => setIsWorkOrderModalOpen(true)}
@@ -1179,39 +1894,65 @@ export default function App() {
                 <SectorsView
                   assets={rawAssets}
                   alerts={rawAlerts}
+                  selectedSectorId={selectedSectorId}
+                  onSelectSectorId={setSelectedSectorId}
+                  onSelectAsset={handleSelectAsset}
                   onSelectSectorFilter={(sectorName) => setSectorFilterOverride(sectorName)}
                   onNavigateTab={(tab) => setActiveTab(tab)}
                   onOpenAddMachineModal={() => setIsAddMachineModalOpen(true)}
                   userRole={user ? user.role : 'admin'}
+                  currentUser={user}
+                />
+              )}
+
+              {activeTab === 'departments' && (
+                <DepartmentsView
+                  assets={roleAssets}
+                  workOrders={roleWorkOrders}
+                  usersList={usersList}
+                  spareParts={rawSpareParts}
+                  onSelectAsset={handleSelectAsset}
+                  onAssignTask={handleAssignTask}
+                  onApproveUser={handleApproveUser}
+                  onRejectUser={handleRejectUser}
+                  onOpenWorkOrderModal={() => setIsWorkOrderModalOpen(true)}
+                  userRole={user ? user.role : 'admin'}
+                  currentUser={user}
                 />
               )}
 
               {activeTab === 'assets' && (
                 <EquipmentFleetView
                   assets={roleAssets}
-                  onSelectAsset={(asset) => setSelectedAsset(asset)}
+                  onSelectAsset={handleSelectAsset}
                   onOpenWorkOrderModal={() => setIsWorkOrderModalOpen(true)}
                   onOpenAddMachineModal={() => setIsAddMachineModalOpen(true)}
                   onEditMachine={handleEditMachine}
                   onDeactivateMachine={handleDeactivateMachine}
                   userRole={user ? user.role : 'admin'}
                   initialSectorFilter={sectorFilterOverride}
+                  currentUser={user}
                 />
               )}
 
               {activeTab === 'alerts' && (
                 <AlertsView
-                  alerts={rawAlerts.filter(a => user.role === ROLES.ADMIN ? true : a.sector === user.sector)}
+                  alerts={roleAlerts}
                   assets={roleAssets}
+                  usersList={usersList}
                   onResolveAlert={handleResolveAlert}
                   onCreateAlert={handleCreateAlert}
                   onUpdateAlertStatus={handleUpdateAlertStatus}
-                  onSendReminder={handleSendReminder}
+                  onAcknowledgeAlert={handleAcknowledgeAlert}
+                  onAssignAlert={handleAssignAlert}
+                  onSendReminder={handleSendAlertReminder}
                   onReviseDeadline={handleReviseAlertDeadline}
                   onEscalateTask={handleEscalateAlert}
                   onVerifyCloseAlert={handleVerifyCloseAlert}
                   onReopenAlert={handleReopenAlert}
+                  onCreateFollowUpAlert={handleCreateFollowUpAlert}
                   userRole={user ? user.role : 'admin'}
+                  currentUser={user}
                 />
               )}
 
@@ -1222,7 +1963,7 @@ export default function App() {
                     workOrders={rawWorkOrders}
                     onAcknowledgeTask={handleAcknowledgeTask}
                     onSubmitResolution={handleSubmitResolution}
-                    onSelectAsset={(asset) => setSelectedAsset(asset)}
+                    onSelectAsset={handleSelectAsset}
                   />
                 ) : (
                   <WorkOrdersView
@@ -1235,6 +1976,7 @@ export default function App() {
                     onCompletePreventiveTask={handleCompletePreventiveTask}
                     downtimeLogs={rawDowntimeLogs}
                     onRecordDowntime={handleRecordDowntime}
+                    onSelectAsset={handleSelectAsset}
                     user={user}
                   />
                 )
@@ -1247,6 +1989,17 @@ export default function App() {
                   onAddUser={handleRegisterUser}
                   onApproveUser={handleApproveUser}
                   onRejectUser={handleRejectUser}
+                />
+              )}
+
+              {activeTab === 'reports' && (
+                <ReportsView
+                  assets={roleAssets}
+                  alerts={roleAlerts}
+                  workOrders={roleWorkOrders}
+                  downtimeLogs={rawDowntimeLogs}
+                  userRole={user ? user.role : 'admin'}
+                  currentUser={user}
                 />
               )}
 
@@ -1299,12 +2052,16 @@ export default function App() {
       <AssetDetailsModal
         isOpen={Boolean(selectedAsset)}
         onClose={() => setSelectedAsset(null)}
-        asset={selectedAsset}
+        asset={selectedAsset ? (rawAssets.find((a) => a.id === selectedAsset.id) || selectedAsset) : null}
         alerts={rawAlerts}
         workOrders={rawWorkOrders}
         downtimeLogs={rawDowntimeLogs}
         spareParts={rawSpareParts}
         userRole={user ? user.role : 'admin'}
+        currentUser={user}
+        onWorkflowTransition={handleWorkflowTransition}
+        onRequestMaintenanceAgain={handleRequestMaintenanceAgain}
+        onCreateWorkOrder={handleAddWorkOrder}
         onEditMachine={handleEditMachine}
         onDeactivateMachine={handleDeactivateMachine}
         onSaveReadings={handleSaveReadings}

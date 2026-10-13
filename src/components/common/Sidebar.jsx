@@ -1,15 +1,10 @@
 import React from 'react';
 import {
-  LayoutDashboard,
   Building2,
-  Cpu,
+  Layers,
   ShieldAlert,
-  Wrench,
   Users,
-  Package,
   BarChart3,
-  Bell,
-  Settings,
   ChevronLeft,
   ChevronRight,
   Cog
@@ -24,19 +19,15 @@ export const Sidebar = ({
   mobileOpen,
   setMobileOpen,
   user,
-  pendingApprovalCount = 0
+  pendingApprovalCount = 0,
+  openAlertsCount = 0
 }) => {
   const allNavItems = [
-    { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
-    { id: 'sectors', label: 'Sectors', icon: Building2, badge: '3' },
-    { id: 'assets', label: 'Machines', icon: Cpu },
-    { id: 'alerts', label: 'Alerts', icon: ShieldAlert, badge: 'Failure' },
-    { id: 'work-orders', label: 'Maintenance', icon: Wrench },
+    { id: 'sectors', label: 'Sectors', icon: Building2 },
+    { id: 'departments', label: 'Departments', icon: Layers },
+    { id: 'alerts', label: 'Alerts', icon: ShieldAlert, badge: openAlertsCount > 0 ? `${openAlertsCount}` : null },
     { id: 'users', label: 'Users', icon: Users, badge: pendingApprovalCount > 0 ? `${pendingApprovalCount} New` : null },
-    { id: 'spare-parts', label: 'Spare Parts', icon: Package },
-    { id: 'analytics', label: 'Reports', icon: BarChart3 },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'settings', label: 'Settings', icon: Settings }
+    { id: 'reports', label: 'Reports', icon: BarChart3 }
   ];
 
   // Filter navigation items by role permissions

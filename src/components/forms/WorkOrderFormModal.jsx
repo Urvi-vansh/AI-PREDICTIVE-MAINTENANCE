@@ -23,17 +23,42 @@ export const WorkOrderFormModal = ({ isOpen, onClose, onSubmit, assets }) => {
     e.preventDefault();
     const selectedAsset = assets.find((a) => a.id === formData.assetId);
 
+    const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const assignedDept = (selectedAsset?.department?.toLowerCase().includes('elec') || formData.assignedTo.toLowerCase().includes('elena'))
+      ? 'Electrical Department'
+      : 'Mechanical Department';
+
     const newWO = {
       id: `WO-2026-${Math.floor(100 + Math.random() * 900)}`,
       assetId: formData.assetId,
       assetName: selectedAsset ? selectedAsset.name : 'Selected Machinery',
+      sector: selectedAsset ? selectedAsset.sector : 'Sector 1 (Production & Manufacturing)',
+      department: selectedAsset ? selectedAsset.department : 'Production Machinery',
+      assignedDepartment: assignedDept,
       type: formData.type,
       priority: formData.priority,
-      status: 'Pending',
+      status: 'Open',
       assignedTo: formData.assignedTo,
+      assignedTech: formData.assignedTo,
       createdDate: new Date().toISOString().split('T')[0],
+      createdAt: timestamp,
       dueDate: formData.dueDate,
-      description: formData.description || 'Routine maintenance and inspection requested.'
+      description: formData.description || 'Routine maintenance and inspection requested.',
+      laborHours: null,
+      technicianNotes: null,
+      replacedParts: [],
+      resolutionPeriod: null,
+      auditTimeline: [
+        {
+          id: `AUD-${Date.now()}`,
+          status: 'Open',
+          action: 'Work Order Dispatched',
+          timestamp,
+          user: 'Plant Supervisor',
+          role: 'Maintenance Coordinator',
+          reason: formData.description || 'Routine maintenance requested.'
+        }
+      ]
     };
 
     onSubmit(newWO);

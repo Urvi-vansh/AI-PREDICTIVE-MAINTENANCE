@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { ROLES, SECTORS } from '../../config/permissions';
 
-// Exactly the 9 requested operational role options (no optgroup headings)
+// Exactly the 9 requested operational role options
 const OPERATIONAL_ROLES = [
   {
     key: 'system_admin',
@@ -26,60 +26,67 @@ const OPERATIONAL_ROLES = [
     label: 'System administrator',
     title: 'System administrator',
     sector: 'All Plant Sectors',
+    department: 'Plant Administration',
     icon: ShieldCheck,
     avatar: 'SA'
   },
   {
     key: 'sector_head_1',
-    role: ROLES.PRODUCTION_HEAD,
+    role: ROLES.SECTOR_HEAD_1,
     label: 'Sector head - Sector 1',
-    title: 'Sector head - Sector 1',
+    title: 'Sector Head 1 (Production & Manufacturing)',
     sector: 'Sector 1 (Production & Manufacturing)',
+    department: 'Machining Line 1',
     icon: Factory,
     avatar: 'S1'
   },
   {
     key: 'sector_head_2',
-    role: ROLES.PRODUCTION_HEAD,
+    role: ROLES.SECTOR_HEAD_2,
     label: 'Sector head - Sector 2',
-    title: 'Sector head - Sector 2',
+    title: 'Sector Head 2 (Heavy Machining & Fabrication)',
     sector: 'Sector 2 (Heavy Machining & Fabrication)',
+    department: 'Heavy Machining Bay',
     icon: Factory,
     avatar: 'S2'
   },
   {
     key: 'sector_head_3',
-    role: ROLES.PRODUCTION_HEAD,
+    role: ROLES.SECTOR_HEAD_3,
     label: 'Sector head - Sector 3',
-    title: 'Sector head - Sector 3',
+    title: 'Sector Head 3 (Assembly & Packaging)',
     sector: 'Sector 3 (Assembly & Packaging)',
+    department: 'Automated Assembly Bay',
     icon: Factory,
     avatar: 'S3'
   },
   {
     key: 'sector_head_4',
-    role: ROLES.PRODUCTION_HEAD,
+    role: ROLES.SECTOR_HEAD_4,
     label: 'Sector head - Sector 4',
-    title: 'Sector head - Sector 4',
+    title: 'Sector Head 4 (Material Handling & Logistics)',
     sector: 'Sector 4 (Material Handling & Logistics)',
+    department: 'Logistics Conveyance Bay',
     icon: Factory,
     avatar: 'S4'
   },
   {
     key: 'mechanical_head',
     role: ROLES.MECHANICAL_HEAD,
-    label: 'Mechanical head',
-    title: 'Mechanical head',
+    label: 'Mechanical department head',
+    title: 'Mechanical Department Head',
     sector: 'Mechanical Department',
+    department: 'Mechanical Department',
     icon: Wrench,
     avatar: 'MH'
   },
   {
     key: 'electrical_head',
     role: ROLES.ELECTRICAL_HEAD,
-    label: 'Electrical head',
-    title: 'Electrical head',
+    label: 'Electrical department head',
+    title: 'Electrical Department Head',
     sector: 'Electrical Department',
+    department: 'Electrical Department',
     icon: Zap,
     avatar: 'EH'
   },
@@ -87,8 +94,9 @@ const OPERATIONAL_ROLES = [
     key: 'mechanical_technician',
     role: ROLES.MECHANICAL_TECH,
     label: 'Mechanical technician',
-    title: 'Mechanical technician',
+    title: 'Mechanical Technician',
     sector: 'Mechanical Department',
+    department: 'Mechanical Department',
     icon: Wrench,
     avatar: 'MT'
   },
@@ -96,8 +104,9 @@ const OPERATIONAL_ROLES = [
     key: 'electrical_technician',
     role: ROLES.ELECTRICAL_TECH,
     label: 'Electrical technician',
-    title: 'Electrical technician',
+    title: 'Electrical Technician',
     sector: 'Electrical Department',
+    department: 'Electrical Department',
     icon: Cpu,
     avatar: 'ET'
   }

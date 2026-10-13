@@ -12,6 +12,9 @@ export const Badge = ({ status = 'Operational', children, size = 'normal' }) => 
     if (s.includes('critical') || s.includes('high') || s.includes('overdue')) {
       return 'badge-critical';
     }
+    if (s.includes('offline') || s.includes('inactive') || s.includes('deactivated')) {
+      return 'badge-offline';
+    }
     if (s.includes('maintenance') || s.includes('in progress') || s.includes('info')) {
       return 'badge-maintenance';
     }

@@ -32,11 +32,13 @@ export const Header = ({
   const getPageTitle = () => {
     switch (activeTab) {
       case 'dashboard': return 'Plant Overview Control Center';
-      case 'sectors': return 'Industry Sectors Summary';
+      case 'sectors': return 'Industrial Sectors & Equipment';
+      case 'departments': return 'Departments & Functional Units';
       case 'assets': return 'Machinery & Equipment Fleet';
       case 'alerts': return 'Failure & Sensor Alerts Log';
       case 'work-orders': return 'Maintenance Tasks & Work Orders';
       case 'users': return 'Plant User & Role Management';
+      case 'reports': return 'Operational Health & Fleet Reports';
       case 'spare-parts': return 'Spare Parts Inventory';
       case 'analytics': return 'Reports & Operational Analytics';
       case 'notifications': return 'Notifications Center';
