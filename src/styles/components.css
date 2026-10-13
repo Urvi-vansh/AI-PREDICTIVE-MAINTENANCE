@@ -1329,11 +1329,12 @@
   justify-content: center;
   flex-wrap: wrap;
   gap: 1.25rem;
-  padding: 0.85rem 1rem;
-  background-color: var(--bg-secondary);
+  padding: 0.75rem 1rem;
+  background-color: var(--bg-card);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-light);
-  margin-bottom: 1.5rem;
+  max-width: 820px;
+  margin: 0 auto 1.25rem auto;
   font-size: 0.8rem;
   font-weight: 600;
 }
@@ -1352,42 +1353,100 @@
   border: 1px solid transparent;
 }
 
+.plant-floor-shell,
 .bus-layout-shell {
-  background-color: var(--bg-secondary);
-  border: 2px dashed var(--border-medium);
-  border-radius: 20px;
-  padding: 1.75rem 1.5rem;
-  max-width: 1100px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  max-width: 860px;
   margin: 0 auto;
+  box-shadow: var(--shadow-sm);
 }
 
+.plant-line-header,
 .bus-cabin-front {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.65rem 1.25rem;
-  background: linear-gradient(180deg, var(--primary-100), var(--primary-50));
-  border: 1px solid var(--primary-200);
-  border-radius: 12px 12px 6px 6px;
-  margin-bottom: 1.75rem;
+  padding: 0.65rem 1rem;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(37, 99, 235, 0.02) 100%);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.25rem;
   font-size: 0.775rem;
   font-weight: 700;
   color: var(--primary-700);
+  letter-spacing: 0.03em;
+}
+
+.plant-row-container {
+  margin-bottom: 1rem;
+}
+
+.plant-row-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 0.65rem;
+  padding-left: 0.25rem;
+}
+
+.plant-row-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.85rem;
+}
+
+.plant-aisle-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.25rem 0;
+  user-select: none;
+}
+
+.plant-aisle-line {
+  flex: 1;
+  height: 1px;
+  background: repeating-linear-gradient(to right,
+      var(--border-medium) 0,
+      var(--border-medium) 8px,
+      transparent 8px,
+      transparent 14px);
+}
+
+.plant-aisle-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
 }
 
 .bus-seat-rows {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
 .bus-seat-row {
   display: grid;
-  grid-template-columns: 1fr 70px 1fr;
-  align-items: stretch;
-  gap: 1rem;
+  grid-template-columns: 1fr 50px 1fr;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .bus-aisle {
@@ -1395,50 +1454,65 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
-  color: var(--text-light);
-  font-size: 0.675rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  gap: 0.35rem;
+  height: 100%;
   user-select: none;
+}
+
+.bus-aisle-pill {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow: var(--shadow-xs);
 }
 
 .bus-aisle-line {
   width: 2px;
-  height: 100%;
-  background: repeating-linear-gradient(to bottom,
-      var(--border-medium) 0,
-      var(--border-medium) 8px,
-      transparent 8px,
-      transparent 16px);
+  height: 14px;
+  background-color: var(--border-medium);
+  opacity: 0.5;
 }
 
 .bus-seat-card {
   background-color: var(--bg-primary);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
-  padding: 1.15rem 1.25rem;
+  padding: 0.85rem 0.65rem;
   cursor: pointer;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: space-between;
-  min-height: 180px;
-  transition: all var(--transition-fast);
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  min-height: unset;
+  height: auto;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-xs);
+  text-align: center;
 }
 
 .bus-seat-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   border-color: var(--primary-400);
   box-shadow: var(--shadow-md);
 }
 
 .bus-seat-card.selected {
   border-color: var(--primary-600);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.22);
+  background-color: var(--primary-50);
 }
 
 .bus-seat-card.status-operational {
@@ -1457,14 +1531,10 @@
   border-top: 4px solid var(--status-offline-text);
 }
 
-@media (max-width: 768px) {
-  .bus-seat-row {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-
-  .bus-aisle {
-    display: none;
+@media (max-width: 900px) {
+  .plant-row-grid {
+    grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
+    gap: 0.65rem;
   }
 }
 

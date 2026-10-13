@@ -52,7 +52,6 @@ export const SectorsView = ({
   const [selectedMachineId, setSelectedMachineId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [layoutMode, setLayoutMode] = useState('bus');
 
   const activeSectorId = selectedSectorId !== undefined && selectedSectorId !== null
     ? selectedSectorId
@@ -180,13 +179,13 @@ export const SectorsView = ({
       })
     : [];
 
-  // Group machines into pairs of 2 for the bus-seat aisle layout
-  const seatPairs = [];
-  for (let i = 0; i < filteredSectorMachines.length; i += 2) {
-    seatPairs.push({
-      rowNumber: Math.floor(i / 2) + 1,
-      leftMachine: filteredSectorMachines[i],
-      rightMachine: filteredSectorMachines[i + 1] || null
+  // Group machines into rows of 5 machines per row
+  const machineRows = [];
+  for (let i = 0; i < filteredSectorMachines.length; i += 5) {
+    machineRows.push({
+      rowNumber: Math.floor(i / 5) + 1,
+      startIndex: i,
+      machines: filteredSectorMachines.slice(i, i + 5)
     });
   }
 
@@ -201,155 +200,7 @@ export const SectorsView = ({
     }
   };
 
-  // Helper for rendering distinct Prediction Risk pills
-  const renderRiskBadge = (risk) => {
-    if (!risk) {
-      return (
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.25rem',
-            padding: '0.15rem 0.5rem',
-            borderRadius: 'var(--radius-sm)',
-            fontSize: '0.725rem',
-            fontWeight: 600,
-            backgroundColor: 'var(--bg-secondary)',
-            color: 'var(--text-light)',
-            border: '1px solid var(--border-light)'
-          }}
-        >
-          <Minus size={12} /> No Prediction
-        </span>
-      );
-    }
 
-    const r = risk.toLowerCase();
-    if (r.includes('critical')) {
-      return (
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.25rem',
-            padding: '0.15rem 0.5rem',
-            borderRadius: 'var(--radius-sm)',
-            fontSize: '0.725rem',
-            fontWeight: 700,
-            backgroundColor: 'rgba(220, 38, 38, 0.12)',
-            color: '#dc2626',
-            border: '1px solid rgba(220, 38, 38, 0.3)'
-          }}
-        >
-          <AlertOctagon size={12} /> Critical Risk
-        </span>
-      );
-    }
-
-    if (r.includes('high')) {
-      return (
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.25rem',
-            padding: '0.15rem 0.5rem',
-            borderRadius: 'var(--radius-sm)',
-            fontSize: '0.725rem',
-            fontWeight: 700,
-            backgroundColor: 'rgba(234, 88, 12, 0.12)',
-            color: '#ea580c',
-            border: '1px solid rgba(234, 88, 12, 0.3)'
-          }}
-        >
-          <AlertTriangle size={12} /> High Risk
-        </span>
-      );
-    }
-
-    if (r.includes('medium')) {
-      return (
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.25rem',
-            padding: '0.15rem 0.5rem',
-            borderRadius: 'var(--radius-sm)',
-            fontSize: '0.725rem',
-            fontWeight: 700,
-            backgroundColor: 'var(--status-warning-bg)',
-            color: 'var(--status-warning-text)',
-            border: '1px solid var(--status-warning-border)'
-          }}
-        >
-          <AlertTriangle size={12} /> Medium Risk
-        </span>
-      );
-    }
-
-    return (
-      <span
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.25rem',
-          padding: '0.15rem 0.5rem',
-          borderRadius: 'var(--radius-sm)',
-          fontSize: '0.725rem',
-          fontWeight: 700,
-          backgroundColor: 'var(--status-success-bg)',
-          color: 'var(--status-success-text)',
-          border: '1px solid var(--status-success-border)'
-        }}
-      >
-        <ShieldCheck size={12} /> Low Risk
-      </span>
-    );
-  };
-
-  // Helper for rendering Maintenance Pending status
-  const renderMaintenanceBadge = (isPending) => {
-    if (isPending) {
-      return (
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.3rem',
-            padding: '0.15rem 0.55rem',
-            borderRadius: 'var(--radius-full)',
-            fontSize: '0.725rem',
-            fontWeight: 700,
-            backgroundColor: 'var(--status-warning-bg)',
-            color: 'var(--status-warning-text)',
-            border: '1px solid var(--status-warning-border)'
-          }}
-        >
-          <Wrench size={11} /> Maintenance Pending
-        </span>
-      );
-    }
-
-    return (
-      <span
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.3rem',
-          padding: '0.15rem 0.55rem',
-          borderRadius: 'var(--radius-full)',
-          fontSize: '0.725rem',
-          fontWeight: 600,
-          backgroundColor: 'var(--bg-secondary)',
-          color: 'var(--text-muted)',
-          border: '1px solid var(--border-light)'
-        }}
-      >
-        <CheckCircle2 size={11} style={{ color: 'var(--status-success-text)' }} /> Up to Date
-      </span>
-    );
-  };
 
   // Border top color based on machine operational status
   const getStatusBorderColor = (status) => {
@@ -367,12 +218,11 @@ export const SectorsView = ({
     }
   };
 
-  // Render a single machine seat card
+  // Render a square machine card (contains ONLY Machine ID, Bay, and Operational Status)
   const renderMachineSeatCard = (machine, bayLabel) => {
     if (!machine) return null;
     const isSelected = selectedMachineId === machine.id;
-    const topAccent = getStatusBorderColor(machine.status);
-
+    const statusAccent = getStatusBorderColor(machine.status);
     const statusClass = (machine.status || 'offline').toLowerCase().replace(/\s+/g, '-');
 
     return (
@@ -381,219 +231,76 @@ export const SectorsView = ({
         onClick={() => handleCardClick(machine)}
         className={`bus-seat-card status-${statusClass} ${isSelected ? 'selected' : ''}`}
         style={{
-          borderTop: `4px solid ${topAccent}`,
+          borderTop: `4px solid ${statusAccent}`,
           borderColor: isSelected ? 'var(--primary-600)' : undefined
         }}
-        title={`Click to inspect detailed profile of ${machine.id}`}
+        title={`Click to inspect complete machine details and telemetry for ${machine.id}`}
       >
-        <div>
-          {/* Top Line: Bay/Seat Slot & Operational Status Badge */}
-          <div
+        {/* Top: Bay Tag & Status Beacon */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <span
             style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '0.65rem'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-              <span
-                style={{
-                  fontSize: '0.7rem',
-                  fontWeight: 800,
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                  padding: '0.15rem 0.45rem',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'var(--primary-50)',
-                  color: 'var(--primary-700)',
-                  border: '1px solid var(--primary-200)'
-                }}
-              >
-                {bayLabel || machine.bayNumber || `Bay ${machine.seatNumber || '01'}`}
-              </span>
-              <span
-                style={{
-                  fontSize: '0.85rem',
-                  fontWeight: 800,
-                  color: 'var(--text-main)',
-                  letterSpacing: '0.04em'
-                }}
-              >
-                {machine.id}
-              </span>
-              {isSelected && (
-                <span
-                  style={{
-                    fontSize: '0.65rem',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.03em',
-                    padding: '0.1rem 0.45rem',
-                    borderRadius: 'var(--radius-full)',
-                    backgroundColor: 'var(--primary-600)',
-                    color: '#ffffff'
-                  }}
-                >
-                  Selected
-                </span>
-              )}
-            </div>
-
-            <Badge status={machine.status} />
-          </div>
-
-          {/* Machine Name & Functional Type */}
-          <h4
-            style={{
-              fontSize: '0.975rem',
-              fontWeight: 700,
-              color: 'var(--text-main)',
-              margin: '0 0 0.25rem 0',
-              lineHeight: 1.3
-            }}
-          >
-            {machine.name}
-          </h4>
-          <div
-            style={{
-              fontSize: '0.775rem',
-              color: 'var(--text-muted)',
-              marginBottom: '0.85rem'
-            }}
-          >
-            {machine.type || machine.category} • {machine.department}
-          </div>
-
-          {/* Machine Metadata: Prediction Risk & Maintenance Status */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.45rem',
-              padding: '0.65rem 0.75rem',
+              fontSize: '0.675rem',
+              fontWeight: 800,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              padding: '0.15rem 0.45rem',
+              borderRadius: 'var(--radius-sm)',
               backgroundColor: 'var(--bg-secondary)',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-light)',
-              marginBottom: '0.85rem'
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border-light)'
             }}
           >
-            {/* Risk Indicator (separate from operational status) */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                fontSize: '0.75rem'
-              }}
-            >
-              <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
-                Prediction Risk:
-              </span>
-              {renderRiskBadge(machine.predictionRisk)}
-            </div>
+            {bayLabel || machine.bayNumber || `Bay ${machine.seatNumber || '01'}`}
+          </span>
 
-            {/* Maintenance Pending Indicator */}
-            <div
+          {isSelected ? (
+            <span
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                fontSize: '0.75rem'
+                fontSize: '0.6rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.03em',
+                padding: '0.1rem 0.35rem',
+                borderRadius: 'var(--radius-full)',
+                backgroundColor: 'var(--primary-600)',
+                color: '#ffffff'
               }}
             >
-              <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
-                Maintenance:
-              </span>
-              {renderMaintenanceBadge(machine.maintenancePending)}
-            </div>
-          </div>
-
-          {/* Telemetry Sensor Mini-Chips */}
-          {machine.readings && (
-            <div
+              Selected
+            </span>
+          ) : (
+            <span
               style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
-                gap: '0.35rem',
-                marginBottom: '0.85rem',
-                fontSize: '0.7rem',
-                textAlign: 'center'
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                backgroundColor: statusAccent,
+                boxShadow: `0 0 6px ${statusAccent}66`
               }}
-            >
-              <div
-                style={{
-                  padding: '0.3rem 0.2rem',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-light)'
-                }}
-              >
-                <div style={{ color: 'var(--text-light)', fontSize: '0.65rem' }}>Temp</div>
-                <div style={{ fontWeight: 700, color: '#dc2626' }}>
-                  {machine.readings.temperature || '--'}°C
-                </div>
-              </div>
-              <div
-                style={{
-                  padding: '0.3rem 0.2rem',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-light)'
-                }}
-              >
-                <div style={{ color: 'var(--text-light)', fontSize: '0.65rem' }}>Vib</div>
-                <div style={{ fontWeight: 700, color: '#2563eb' }}>
-                  {machine.readings.vibration || '--'}
-                </div>
-              </div>
-              <div
-                style={{
-                  padding: '0.3rem 0.2rem',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-light)'
-                }}
-              >
-                <div style={{ color: 'var(--text-light)', fontSize: '0.65rem' }}>Pres</div>
-                <div style={{ fontWeight: 700, color: '#d97706' }}>
-                  {machine.readings.pressure || '--'}b
-                </div>
-              </div>
-              <div
-                style={{
-                  padding: '0.3rem 0.2rem',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-light)'
-                }}
-              >
-                <div style={{ color: 'var(--text-light)', fontSize: '0.65rem' }}>Power</div>
-                <div style={{ fontWeight: 700, color: '#16a34a' }}>
-                  {machine.readings.power || '--'}kW
-                </div>
-              </div>
-            </div>
+            />
           )}
         </div>
 
-        {/* Action Button: Opens Detailed Machine Profile */}
-        <button
-          className="btn btn-secondary btn-sm"
+        {/* Center: Machine ID (large, bold, prominent) */}
+        <div
           style={{
-            width: '100%',
-            justifyContent: 'center',
-            fontSize: '0.8rem',
-            fontWeight: 600,
-            marginTop: '0.25rem'
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleCardClick(machine);
+            fontSize: '1.25rem',
+            fontWeight: 800,
+            color: 'var(--text-main)',
+            letterSpacing: '0.03em',
+            fontFamily: 'var(--font-mono, monospace)',
+            textAlign: 'center',
+            margin: '0.4rem 0'
           }}
         >
-          <Cpu size={14} /> Inspect Machine Profile <ArrowRight size={13} />
-        </button>
+          {machine.id}
+        </div>
+
+        {/* Bottom: Status Badge */}
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+          <Badge status={machine.status} size="sm" />
+        </div>
       </div>
     );
   };
@@ -1236,7 +943,8 @@ export const SectorsView = ({
                 display: 'flex',
                 gap: '0.75rem',
                 alignItems: 'center',
-                marginBottom: '1.5rem',
+                maxWidth: 820,
+                margin: '0 auto 1.25rem auto',
                 flexWrap: 'wrap'
               }}
             >
@@ -1253,25 +961,6 @@ export const SectorsView = ({
               </div>
 
               <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: '0.2rem', backgroundColor: 'var(--bg-secondary)', padding: '0.2rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', marginRight: '0.35rem' }}>
-                  <button
-                    className={`btn btn-sm ${layoutMode === 'bus' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}
-                    onClick={() => setLayoutMode('bus')}
-                    title="Bus Seat-Selection Layout with Central Aisle"
-                  >
-                    Bus Seat Layout
-                  </button>
-                  <button
-                    className={`btn btn-sm ${layoutMode === 'grid' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}
-                    onClick={() => setLayoutMode('grid')}
-                    title="Responsive Machine Grid View"
-                  >
-                    Responsive Grid
-                  </button>
-                </div>
-
                 {['All', 'Operational', 'Warning', 'Critical', 'Offline'].map((st) => (
                   <button
                     key={st}
@@ -1284,91 +973,56 @@ export const SectorsView = ({
               </div>
             </div>
 
-            {layoutMode === 'bus' ? (
-              /* Bus Shell Container */
-              <div className="bus-layout-shell">
-                {/* Front Cabin Banner (like the driver cabin of a bus) */}
-                <div className="bus-cabin-front">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Sparkles size={16} />
-                    <span>▲ Production Line Front — Material Infeed & Sensor Cabin</span>
-                  </div>
-                  <span>Row 1 to Row 5 Layout</span>
+            {/* 5-Machines-Per-Row Plant Floor Shell */}
+            <div className="plant-floor-shell">
+              {/* Floor Infeed & Banner Header */}
+              <div className="plant-line-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Sparkles size={16} />
+                  <span>▲ Production Line Floor — Monitored Machinery Bays</span>
                 </div>
-
-                {/* The 5 Rows of Machine Cards with Central Aisle (Seat Pair Layout) */}
-                <div className="bus-seat-rows">
-                  {seatPairs.map((pair) => (
-                    <div key={pair.rowNumber} className="bus-seat-row">
-                      {/* Left Machine Bay */}
-                      <div>
-                        {pair.leftMachine ? (
-                          renderMachineSeatCard(
-                            pair.leftMachine,
-                            `Row ${pair.rowNumber} • Bay ${(pair.rowNumber - 1) * 2 + 1 < 10 ? '0' : ''}${(pair.rowNumber - 1) * 2 + 1}`
-                          )
-                        ) : (
-                          <div style={{ height: '100%', border: '1px dashed var(--border-medium)', borderRadius: 'var(--radius-lg)' }} />
-                        )}
-                      </div>
-
-                      {/* Central Walking / Maintenance Aisle */}
-                      <div className="bus-aisle">
-                        <div className="bus-aisle-line" />
-                        <span style={{ padding: '0.2rem 0', whiteSpace: 'nowrap' }}>
-                          R{pair.rowNumber}
-                        </span>
-                        <div className="bus-aisle-line" />
-                      </div>
-
-                      {/* Right Machine Bay */}
-                      <div>
-                        {pair.rightMachine ? (
-                          renderMachineSeatCard(
-                            pair.rightMachine,
-                            `Row ${pair.rowNumber} • Bay ${pair.rowNumber * 2 < 10 ? '0' : ''}${pair.rowNumber * 2}`
-                          )
-                        ) : (
-                          <div style={{ height: '100%', border: '1px dashed var(--border-medium)', borderRadius: 'var(--radius-lg)' }} />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {filteredSectorMachines.length === 0 && (
-                  <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
-                    <Cpu size={36} style={{ margin: '0 auto 0.75rem auto', opacity: 0.5 }} />
-                    <p style={{ margin: 0 }}>No machines matching the search or filter criteria in this sector.</p>
-                  </div>
-                )}
+                <span>5 Machines Per Row • {currentSector.total} Bays</span>
               </div>
-            ) : (
-              /* Responsive Machine Cards Grid */
-              <div>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-                    gap: '1.25rem'
-                  }}
-                >
-                  {filteredSectorMachines.map((machine, idx) =>
-                    renderMachineSeatCard(
-                      machine,
-                      `Bay ${idx + 1 < 10 ? '0' : ''}${idx + 1}`
-                    )
+
+              {/* Rows of 5 Square Machine Cards */}
+              {machineRows.map((row, rIdx) => (
+                <div key={row.rowNumber} className="plant-row-container">
+                  <div className="plant-row-label">
+                    <span>Row {row.rowNumber}</span>
+                    <span style={{ opacity: 0.4 }}>•</span>
+                    <span>Bays {row.startIndex + 1 < 10 ? '0' : ''}{row.startIndex + 1} – {Math.min(row.startIndex + 5, filteredSectorMachines.length) < 10 ? '0' : ''}{Math.min(row.startIndex + 5, filteredSectorMachines.length)}</span>
+                  </div>
+
+                  <div className="plant-row-grid">
+                    {row.machines.map((machine, mIdx) => {
+                      const bayNum = row.startIndex + mIdx + 1;
+                      return renderMachineSeatCard(
+                        machine,
+                        `Bay ${bayNum < 10 ? '0' : ''}${bayNum}`
+                      );
+                    })}
+                  </div>
+
+                  {/* Central Maintenance Aisle Divider between rows */}
+                  {rIdx < machineRows.length - 1 && (
+                    <div className="plant-aisle-divider">
+                      <div className="plant-aisle-line" />
+                      <span className="plant-aisle-badge">
+                        Central Maintenance Walkway
+                      </span>
+                      <div className="plant-aisle-line" />
+                    </div>
                   )}
                 </div>
+              ))}
 
-                {filteredSectorMachines.length === 0 && (
-                  <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
-                    <Cpu size={36} style={{ margin: '0 auto 0.75rem auto', opacity: 0.5 }} />
-                    <p style={{ margin: 0 }}>No machines matching the search or filter criteria in this sector.</p>
-                  </div>
-                )}
-              </div>
-            )}
+              {filteredSectorMachines.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
+                  <Cpu size={36} style={{ margin: '0 auto 0.75rem auto', opacity: 0.5 }} />
+                  <p style={{ margin: 0 }}>No machines matching the search or filter criteria in this sector.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       ) : (
