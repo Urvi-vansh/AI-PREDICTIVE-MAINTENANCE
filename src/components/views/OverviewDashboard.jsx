@@ -10,14 +10,12 @@ import {
   CheckSquare,
   Building2,
   Plus,
-  Wrench,
   Users,
   ArrowUpRight,
   Eye,
   Info,
   ChevronRight
 } from 'lucide-react';
-import { ADMIN_KPI_STATS, MOCK_SECTORS_SUMMARY, MOCK_ALERTS } from '../../mockData/industrialData';
 
 export const OverviewDashboard = ({
   assets,
@@ -27,78 +25,117 @@ export const OverviewDashboard = ({
   onNavigateTab,
   onOpenAddMachineModal,
   onOpenWorkOrderModal,
-  onSelectSectorFilter
+  onSelectSectorFilter,
+  pendingApprovalCount = 0
 }) => {
-  // Compute counts from state
+// Dynamic counts from state
   const totalMachines = assets.length;
   const healthyMachines = assets.filter(a => a.status === 'Operational').length;
   const attentionMachines = assets.filter(a => a.status === 'Warning' || a.status === 'Maintenance Required').length;
+  const criticalMachines = assets.filter(a => a.status === 'Critical' || a.status === 'Offline').length;
   const openFailures = alerts.filter(a => a.status === 'Open' || a.status === 'Investigating').length;
-  const overdueTasks = workOrders.filter(w => new Date(w.dueDate) < new Date('2026-10-10') && w.status !== 'Completed').length;
-  const resolvedFailures = alerts.filter(a => a.status === 'Resolved').length + 32;
+  const resolvedFailures = alerts.filter(a => a.status === 'Resolved' || a.status === 'Closed').length;
+
+  const healthyPct = totalMachines > 0 ? Math.round((healthyMachines / totalMachines) * 100) : 0;
+  const attentionPct = totalMachines > 0 ? Math.round((attentionMachines / totalMachines) * 100) : 0;
+  const criticalPct = totalMachines > 0 ? Math.max(0, 100 - healthyPct - attentionPct) : 0;
 
   // Custom overview cards data
   const overviewCards = [
     {
       title: 'Total Machines',
       value: totalMachines,
-      subtext: 'Monitored across 3 sectors',
+      subtext: `${totalMachines} monitored machine assets`,
       trend: 'positive',
-      trendValue: '100% Active',
+      trendValue: totalMachines > 0 ? '100% Monitored' : 'No Assets',
       iconName: 'Cpu'
     },
     {
       title: 'Healthy Machines',
       value: healthyMachines,
-      subtext: `${Math.round((healthyMachines / totalMachines) * 100)}% of total fleet`,
+      subtext: `${healthyPct}% of total fleet`,
       trend: 'positive',
-      trendValue: 'Optimal',
+      trendValue: healthyPct > 80 ? 'Optimal' : 'Needs Review',
       iconName: 'CheckCircle2'
     },
     {
       title: 'Requires Attention',
       value: attentionMachines,
-      subtext: 'Minor warnings or inspections',
-      trend: 'neutral',
-      trendValue: '8.6% Fleet',
+      subtext: `${attentionPct}% of total fleet`,
+      trend: attentionMachines > 0 ? 'neutral' : 'positive',
+      trendValue: `${attentionMachines} Active`,
       iconName: 'AlertTriangle'
     },
     {
       title: 'Open Critical Failures',
       value: openFailures,
-      subtext: 'Urgent technician response',
-      trend: 'negative',
-      trendValue: 'Action Req.',
+      subtext: 'Actionable technician response',
+      trend: openFailures > 0 ? 'negative' : 'positive',
+      trendValue: openFailures > 0 ? 'Action Req.' : 'All Clear',
       iconName: 'ShieldAlert'
     },
     {
-      title: 'Overdue Maintenance',
-      value: overdueTasks,
-      subtext: 'Exceeded target deadline',
-      trend: 'negative',
-      trendValue: 'Pending',
-      iconName: 'Clock'
+      title: 'Operational Sectors',
+      value: 4,
+      subtext: 'Sectors 1, 2, 3 & 4 monitored',
+      trend: 'positive',
+      trendValue: '4 Active',
+      iconName: 'Building2'
     },
     {
-      title: 'Resolved Failures (30d)',
+      title: 'Resolved Incidents',
       value: resolvedFailures,
-      subtext: 'Repaired & verified',
+      subtext: 'Repaired & verified incidents',
       trend: 'positive',
-      trendValue: '+18% Speed',
+      trendValue: `${resolvedFailures} Total`,
       iconName: 'CheckSquare'
     }
   ];
 
+  // Dynamic sector summaries
+  const standardSectors = [
+    { id: 'sec-1', name: 'Sector 1', headName: 'Sector Head - Sector 1' },
+    { id: 'sec-2', name: 'Sector 2', headName: 'Sector Head - Sector 2' },
+    { id: 'sec-3', name: 'Sector 3', headName: 'Sector Head - Sector 3' },
+    { id: 'sec-4', name: 'Sector 4', headName: 'Sector Head - Sector 4' }
+  ];
+
+  const sectorSummaries = standardSectors.map((sec) => {
+    const secAssets = assets.filter(
+      (a) => a.sector === sec.name || (a.sector && a.sector.startsWith(sec.name))
+    );
+    const secTotal = secAssets.length;
+    const secHealthy = secAssets.filter((a) => a.status === 'Operational').length;
+    const secCritical = secAssets.filter(
+      (a) => a.status === 'Critical' || a.status === 'Warning' || a.status === 'Maintenance Required'
+    ).length;
+    const secHealthIndex = secTotal > 0 ? Math.round((secHealthy / secTotal) * 100) : 100;
+
+    return {
+      ...sec,
+      totalMachines: secTotal,
+      healthyMachines: secHealthy,
+      criticalMachines: secCritical,
+      healthIndex: secHealthIndex
+    };
+  });
+
+
+
+  const conicGrad = totalMachines === 0
+    ? 'conic-gradient(var(--border-medium) 0% 100%)'
+    : `conic-gradient(#16a34a 0% ${healthyPct}%, #d97706 ${healthyPct}% ${healthyPct + attentionPct}%, #dc2626 ${healthyPct + attentionPct}% 100%)`;
+
   return (
     <div>
-      {/* Demo Data Banner & Quick Action Toolbar */}
+      {/* Quick Action Toolbar */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <span className="badge badge-neutral" style={{ fontSize: '0.8rem', border: '1px solid var(--border-medium)' }}>
-            <Info size={14} className="text-blue" /> Demo Data Mode
+            Plant Facility #04 • Live Operations
           </span>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            Plant Facility #04 • Admin Control Center
+            Admin Control Center
           </span>
         </div>
 
@@ -107,14 +144,66 @@ export const OverviewDashboard = ({
           <button className="btn btn-secondary btn-sm" onClick={onOpenAddMachineModal}>
             <Plus size={16} /> + Add Machine
           </button>
-          <button className="btn btn-primary btn-sm" onClick={onOpenWorkOrderModal}>
-            <Wrench size={16} /> + Create Maintenance Task
+          <button className="btn btn-outline-blue btn-sm" onClick={() => onNavigateTab('alerts')}>
+            <ShieldAlert size={16} /> Failure Alerts
           </button>
           <button className="btn btn-outline-blue btn-sm" onClick={() => onNavigateTab('users')}>
             <Users size={16} /> Manage Users
+            {pendingApprovalCount > 0 && (
+              <span
+                style={{
+                  backgroundColor: '#d97706',
+                  color: '#ffffff',
+                  borderRadius: '10px',
+                  padding: '0.1rem 0.45rem',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  marginLeft: '0.35rem'
+                }}
+              >
+                {pendingApprovalCount} Pending
+              </span>
+            )}
           </button>
         </div>
       </div>
+
+      {/* Pending Access Approvals Banner for Admin */}
+      {pendingApprovalCount > 0 && (
+        <div
+          style={{
+            padding: '0.85rem 1.25rem',
+            backgroundColor: 'rgba(217, 119, 6, 0.12)',
+            border: '1px solid rgba(217, 119, 6, 0.35)',
+            borderRadius: 'var(--radius-lg)',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span style={{ fontSize: '1.1rem' }}>⚠️</span>
+            <div>
+              <strong style={{ color: '#d97706', fontSize: '0.9rem' }}>
+                {pendingApprovalCount} Personnel Access {pendingApprovalCount === 1 ? 'Request' : 'Requests'} Pending Approval
+              </strong>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                New technician or sector head accounts require Administrator authorization before accessing plant data.
+              </div>
+            </div>
+          </div>
+          <button
+            className="btn btn-sm btn-primary"
+            style={{ backgroundColor: '#d97706', borderColor: '#d97706', fontSize: '0.8rem' }}
+            onClick={() => onNavigateTab('users')}
+          >
+            Review & Approve Requests →
+          </button>
+        </div>
+      )}
 
       {/* 6 Key Overview Metric Cards */}
       <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', marginBottom: '1.75rem' }}>
@@ -123,10 +212,10 @@ export const OverviewDashboard = ({
         ))}
       </div>
 
-      {/* Sector-Wise Summary Section (3 Industry Sectors) */}
+      {/* Sector-Wise Summary Section */}
       <Card
         title="Industry Sectors Operational Summary"
-        subtitle="Real-time machinery distribution and health score per department"
+        subtitle="Real-time machinery distribution and health score per sector"
         style={{ marginBottom: '1.75rem' }}
         action={
           <button className="btn btn-outline-blue btn-sm" onClick={() => onNavigateTab('sectors')}>
@@ -135,7 +224,7 @@ export const OverviewDashboard = ({
         }
       >
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
-          {MOCK_SECTORS_SUMMARY.map((sec) => (
+          {sectorSummaries.map((sec) => (
             <div
               key={sec.id}
               onClick={() => {
@@ -182,7 +271,7 @@ export const OverviewDashboard = ({
       {/* Visual Charts Section: Machine Status & Maintenance Tasks */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.75rem' }}>
         {/* Machine Status Visual Chart */}
-        <Card title="Machine Status Distribution" subtitle="Fleet operational status breakdown (Demo Visualization)">
+        <Card title="Machine Status Distribution" subtitle="Fleet operational status breakdown">
           <div style={{ padding: '1rem 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: '1.5rem' }}>
               {/* CSS Donut Chart */}
@@ -191,7 +280,7 @@ export const OverviewDashboard = ({
                   width: 140,
                   height: 140,
                   borderRadius: '50%',
-                  background: 'conic-gradient(#16a34a 0% 87.5%, #d97706 87.5% 96%, #dc2626 96% 100%)',
+                  background: conicGrad,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -211,7 +300,7 @@ export const OverviewDashboard = ({
                     justifyContent: 'center'
                   }}
                 >
-                  <span style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-main)' }}>87.5%</span>
+                  <span style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-main)' }}>{healthyPct}%</span>
                   <span style={{ fontSize: '0.675rem', color: 'var(--text-muted)' }}>Healthy Fleet</span>
                 </div>
               </div>
@@ -223,53 +312,56 @@ export const OverviewDashboard = ({
                     <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#16a34a' }} />
                     Operational / Healthy
                   </span>
-                  <strong style={{ color: '#16a34a' }}>112 (87.5%)</strong>
+                  <strong style={{ color: '#16a34a' }}>{healthyMachines} ({healthyPct}%)</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#d97706' }} />
                     Warning / Attention
                   </span>
-                  <strong style={{ color: '#d97706' }}>11 (8.6%)</strong>
+                  <strong style={{ color: '#d97706' }}>{attentionMachines} ({attentionPct}%)</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#dc2626' }} />
                     Critical Failure
                   </span>
-                  <strong style={{ color: '#dc2626' }}>5 (3.9%)</strong>
+                  <strong style={{ color: '#dc2626' }}>{criticalMachines} ({criticalPct}%)</strong>
                 </div>
               </div>
             </div>
           </div>
         </Card>
 
-        {/* Maintenance Tasks Bar Chart */}
-        <Card title="Monthly Maintenance Activity" subtitle="Preventative vs Corrective task executions">
-          <div style={{ height: 180, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '0.75rem', padding: '1rem 0.5rem 0 0.5rem' }}>
-            {[
-              { month: 'May', prev: 38, corr: 12 },
-              { month: 'Jun', prev: 42, corr: 9 },
-              { month: 'Jul', prev: 45, corr: 14 },
-              { month: 'Aug', prev: 40, corr: 8 },
-              { month: 'Sep', prev: 48, corr: 11 },
-              { month: 'Oct', prev: 52, corr: 6 }
-            ].map((d) => (
-              <div key={d.month} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, gap: '0.35rem', height: '100%', justifyContent: 'flex-end' }}>
-                <div style={{ display: 'flex', gap: '4px', alignItems: 'flex-end', width: '100%', justifyContent: 'center' }}>
-                  <div style={{ width: '14px', height: `${d.prev * 2.5}px`, backgroundColor: 'var(--primary-600)', borderRadius: '3px 3px 0 0' }} title={`Preventative: ${d.prev}`} />
-                  <div style={{ width: '14px', height: `${d.corr * 2.5}px`, backgroundColor: '#d97706', borderRadius: '3px 3px 0 0' }} title={`Corrective: ${d.corr}`} />
+        {/* Machinery Distribution by Sector */}
+        <Card title="Machinery Distribution by Sector" subtitle="Monitored equipment inventory across plant zones">
+          <div style={{ height: 180, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', gap: '1rem', padding: '1rem 0.5rem 0 0.5rem' }}>
+            {sectorSummaries.map((sec) => {
+              const maxCount = Math.max(1, ...sectorSummaries.map(s => s.totalMachines));
+              const barHeight = sec.totalMachines > 0 ? Math.max(16, Math.round((sec.totalMachines / maxCount) * 110)) : 8;
+              return (
+                <div key={sec.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, gap: '0.45rem', height: '100%', justifyContent: 'flex-end' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary-600)' }}>
+                    {sec.totalMachines}
+                  </div>
+                  <div
+                    style={{
+                      width: '32px',
+                      height: `${barHeight}px`,
+                      backgroundColor: 'var(--primary-600)',
+                      borderRadius: '4px 4px 0 0',
+                      transition: 'height 0.3s ease'
+                    }}
+                    title={`${sec.name}: ${sec.totalMachines} machines`}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>{sec.name}</span>
                 </div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>{d.month}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '0.75rem', fontSize: '0.775rem' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ width: 10, height: 10, backgroundColor: 'var(--primary-600)', borderRadius: 2 }} /> Preventative Tasks
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ width: 10, height: 10, backgroundColor: '#d97706', borderRadius: 2 }} /> Corrective Tasks
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-secondary)' }}>
+              <span style={{ width: 10, height: 10, backgroundColor: 'var(--primary-600)', borderRadius: 2 }} /> Plant Floor Machinery Assets
             </span>
           </div>
         </Card>
@@ -299,51 +391,59 @@ export const OverviewDashboard = ({
               </tr>
             </thead>
             <tbody>
-              {alerts.slice(0, 5).map((alt) => {
-                const targetAsset = assets.find(a => a.id === alt.machineId);
-                return (
-                  <tr
-                    key={alt.id}
-                    onClick={() => targetAsset && onSelectAsset(targetAsset)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <td>
-                      <div>
-                        <span style={{ fontWeight: 700, color: 'var(--primary-600)', fontFamily: 'monospace' }}>
-                          {alt.machineId}
+              {alerts.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                    No alerts currently logged in the system.
+                  </td>
+                </tr>
+              ) : (
+                alerts.slice(0, 5).map((alt) => {
+                  const targetAsset = assets.find(a => a.id === alt.machineId);
+                  return (
+                    <tr
+                      key={alt.id}
+                      onClick={() => targetAsset && onSelectAsset(targetAsset)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <td>
+                        <div>
+                          <span style={{ fontWeight: 700, color: 'var(--primary-600)', fontFamily: 'monospace' }}>
+                            {alt.machineId}
+                          </span>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>{alt.machineName}</div>
+                        </div>
+                      </td>
+                      <td>{alt.sector}</td>
+                      <td>{alt.department}</td>
+                      <td>
+                        <span
+                          className="badge"
+                          style={{
+                            backgroundColor: alt.severity === 'Critical' ? 'var(--status-danger-bg)' : alt.severity === 'Warning' ? 'var(--status-warning-bg)' : 'var(--status-info-bg)',
+                            color: alt.severity === 'Critical' ? 'var(--status-danger-text)' : alt.severity === 'Warning' ? 'var(--status-warning-text)' : 'var(--status-info-text)'
+                          }}
+                        >
+                          {alt.severity}
                         </span>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>{alt.machineName}</div>
-                      </div>
-                    </td>
-                    <td>{alt.sector}</td>
-                    <td>{alt.department}</td>
-                    <td>
-                      <span
-                        className="badge"
-                        style={{
-                          backgroundColor: alt.severity === 'Critical' ? 'var(--status-danger-bg)' : alt.severity === 'Warning' ? 'var(--status-warning-bg)' : 'var(--status-info-bg)',
-                          color: alt.severity === 'Critical' ? 'var(--status-danger-text)' : alt.severity === 'Warning' ? 'var(--status-warning-text)' : 'var(--status-info-text)'
-                        }}
-                      >
-                        {alt.severity}
-                      </span>
-                    </td>
-                    <td>{alt.date}</td>
-                    <td><Badge status={alt.status} /></td>
-                    <td>
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (targetAsset) onSelectAsset(targetAsset);
-                        }}
-                      >
-                        <Eye size={14} /> Inspect Machine
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                      <td>{alt.date}</td>
+                      <td><Badge status={alt.status} /></td>
+                      <td>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (targetAsset) onSelectAsset(targetAsset);
+                          }}
+                        >
+                          <Eye size={14} /> Inspect Machine
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

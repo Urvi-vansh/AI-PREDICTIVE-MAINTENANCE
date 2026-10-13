@@ -8,9 +8,10 @@ export const FactoryLayoutMap = ({ assets, onSelectAsset, userRole }) => {
   const [statusFilter, setStatusFilter] = useState('All');
 
   const sectorsList = [
-    { name: 'Production & Manufacturing', code: 'PROD', color: 'var(--primary-600)', bg: 'var(--primary-50)' },
-    { name: 'Mechanical Department', code: 'MECH', color: '#d97706', bg: '#fffbeb' },
-    { name: 'Electrical Department', code: 'ELEC', color: '#7c3aed', bg: '#f5f3ff' }
+    { name: 'Sector 1 (Production & Manufacturing)', code: 'SEC-1', color: 'var(--primary-600)', bg: 'var(--primary-50)' },
+    { name: 'Sector 2 (Heavy Machining & Fabrication)', code: 'SEC-2', color: '#d97706', bg: '#fffbeb' },
+    { name: 'Sector 3 (Assembly & Packaging)', code: 'SEC-3', color: '#7c3aed', bg: '#f5f3ff' },
+    { name: 'Sector 4 (Material Handling & Logistics)', code: 'SEC-4', color: '#059669', bg: '#ecfdf5' }
   ];
 
   const getStatusColor = (status) => {
@@ -44,7 +45,11 @@ export const FactoryLayoutMap = ({ assets, onSelectAsset, userRole }) => {
   };
 
   const filteredAssets = assets.filter((asset) => {
-    const matchesSector = selectedSector === 'All' || asset.sector === selectedSector;
+    const matchesSector =
+      selectedSector === 'All' ||
+      asset.sector === selectedSector ||
+      (asset.sector && selectedSector && asset.sector.startsWith(selectedSector)) ||
+      (selectedSector && asset.sector && selectedSector.startsWith(asset.sector));
     const matchesStatus = statusFilter === 'All' || asset.status === statusFilter;
     return matchesSector && matchesStatus;
   });
@@ -62,8 +67,8 @@ export const FactoryLayoutMap = ({ assets, onSelectAsset, userRole }) => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
               <h3 style={{ fontSize: '1.15rem', color: 'var(--text-main)' }}>Interactive Visual Factory Floor Layout</h3>
-              <span className="badge badge-info" style={{ fontSize: '0.75rem' }}>
-                Mode: Demo Data & Manual Entry
+              <span className="badge badge-neutral" style={{ fontSize: '0.75rem', border: '1px solid var(--border-medium)' }}>
+                Operational Plant Floor
               </span>
             </div>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -141,13 +146,10 @@ export const FactoryLayoutMap = ({ assets, onSelectAsset, userRole }) => {
             </div>
           </div>
 
-          {/* Data Source Label & Timestamp */}
+          {/* Data Source Label */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-muted)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <Clock size={14} /> Last Updated: <strong style={{ color: 'var(--text-main)' }}>2026-10-10 14:35:00</strong>
-            </div>
             <span className="nav-badge" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-light)' }}>
-              Data Sources: Demo Data | Manual Entry
+              Source: Active Fleet Registry
             </span>
           </div>
         </div>
@@ -295,7 +297,7 @@ export const FactoryLayoutMap = ({ assets, onSelectAsset, userRole }) => {
                             {/* Footer Data Tag & Action Link */}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid var(--border-light)', fontSize: '0.725rem' }}>
                               <span style={{ color: 'var(--text-light)', fontWeight: 600 }}>
-                                Source: {asset.dataSource || 'Demo Data'}
+                                Source: {asset.dataSource || 'Manual Entry'}
                               </span>
                               <span style={{ color: 'var(--primary-600)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                                 Profile <ArrowUpRight size={12} />

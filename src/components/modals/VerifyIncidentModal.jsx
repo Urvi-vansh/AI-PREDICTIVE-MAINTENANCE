@@ -11,7 +11,7 @@ export const VerifyIncidentModal = ({ isOpen, onClose, task, onVerifyClose, onRe
     notes: 'Technician conducted preliminary mechanical inspection and torque recalibration.',
     partsUsed: 'Standard seal gasket',
     hoursSpent: '1.5 hrs',
-    resolvedAt: '2026-10-10 16:30'
+    resolvedAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
   };
 
   const handleCloseIncident = () => {

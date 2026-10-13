@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { Package, CheckCircle } from 'lucide-react';
-import { MOCK_ASSETS } from '../../mockData/industrialData';
 
-export const SparePartFormModal = ({ isOpen, onClose, onSubmit, initialPart }) => {
+export const SparePartFormModal = ({ isOpen, onClose, onSubmit, initialPart, assets = [] }) => {
   const [formData, setFormData] = useState({
     id: '',
     name: '',
     category: 'Electrical / Motors',
-    compatibleMachine: MOCK_ASSETS[0]?.name || 'CNC Milling Machine #04',
-    compatibleMachineId: MOCK_ASSETS[0]?.id || 'AST-101',
+    compatibleMachine: assets[0]?.name || 'General Equipment',
+    compatibleMachineId: assets[0]?.id || 'GEN-01',
     stockQuantity: 5,
     minThreshold: 2,
     unitPrice: '$150.00',
@@ -22,8 +21,8 @@ export const SparePartFormModal = ({ isOpen, onClose, onSubmit, initialPart }) =
         id: initialPart.id || '',
         name: initialPart.name || '',
         category: initialPart.category || 'Belts & Bearings',
-        compatibleMachine: initialPart.compatibleMachine || '',
-        compatibleMachineId: initialPart.compatibleMachineId || 'AST-101',
+        compatibleMachine: initialPart.compatibleMachine || (assets[0]?.name || 'General Equipment'),
+        compatibleMachineId: initialPart.compatibleMachineId || (assets[0]?.id || 'GEN-01'),
         stockQuantity: initialPart.stockQuantity ?? 5,
         minThreshold: initialPart.minThreshold ?? 2,
         unitPrice: initialPart.unitPrice || '$100.00',
@@ -34,20 +33,20 @@ export const SparePartFormModal = ({ isOpen, onClose, onSubmit, initialPart }) =
         id: `PRT-${Math.floor(500 + Math.random() * 90)}`,
         name: '',
         category: 'Belts & Bearings',
-        compatibleMachine: MOCK_ASSETS[0]?.name || 'CNC Milling Machine #04',
-        compatibleMachineId: MOCK_ASSETS[0]?.id || 'AST-101',
+        compatibleMachine: assets[0]?.name || 'General Equipment',
+        compatibleMachineId: assets[0]?.id || 'GEN-01',
         stockQuantity: 5,
         minThreshold: 2,
         unitPrice: '$100.00',
         location: 'Shelf A-01'
       });
     }
-  }, [initialPart]);
+  }, [initialPart, assets]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === 'compatibleMachineId') {
-      const mac = MOCK_ASSETS.find((a) => a.id === value);
+      const mac = assets.find((a) => a.id === value);
       setFormData((prev) => ({
         ...prev,
         compatibleMachineId: value,
@@ -134,11 +133,15 @@ export const SparePartFormModal = ({ isOpen, onClose, onSubmit, initialPart }) =
               onChange={handleChange}
               required
             >
-              {MOCK_ASSETS.map((ast) => (
-                <option key={ast.id} value={ast.id}>
-                  {ast.id} — {ast.name}
-                </option>
-              ))}
+              {assets.length === 0 ? (
+                <option value="GEN-01">General Facility Machinery</option>
+              ) : (
+                assets.map((ast) => (
+                  <option key={ast.id} value={ast.id}>
+                    {ast.id} — {ast.name} ({ast.sector})
+                  </option>
+                ))
+              )}
             </select>
           </div>
 

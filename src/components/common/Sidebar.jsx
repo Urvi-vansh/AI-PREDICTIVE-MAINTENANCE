@@ -23,7 +23,8 @@ export const Sidebar = ({
   setActiveTab,
   mobileOpen,
   setMobileOpen,
-  user
+  user,
+  pendingApprovalCount = 0
 }) => {
   const allNavItems = [
     { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
@@ -31,7 +32,7 @@ export const Sidebar = ({
     { id: 'assets', label: 'Machines', icon: Cpu },
     { id: 'alerts', label: 'Alerts', icon: ShieldAlert, badge: 'Failure' },
     { id: 'work-orders', label: 'Maintenance', icon: Wrench },
-    { id: 'users', label: 'Users', icon: Users },
+    { id: 'users', label: 'Users', icon: Users, badge: pendingApprovalCount > 0 ? `${pendingApprovalCount} New` : null },
     { id: 'spare-parts', label: 'Spare Parts', icon: Package },
     { id: 'analytics', label: 'Reports', icon: BarChart3 },
     { id: 'notifications', label: 'Notifications', icon: Bell },

@@ -21,7 +21,8 @@ export const Header = ({
   onMarkAllRead,
   user,
   onLogout,
-  setMobileOpen
+  setMobileOpen,
+  onNavigateTab
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -130,6 +131,10 @@ export const Header = ({
               notifications={notifications}
               onMarkAllRead={onMarkAllRead}
               onClose={() => setShowNotifications(false)}
+              onNavigateTab={(tab) => {
+                if (onNavigateTab) onNavigateTab(tab);
+                setShowNotifications(false);
+              }}
             />
           )}
         </div>

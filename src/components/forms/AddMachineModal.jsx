@@ -5,16 +5,17 @@ import { SECTORS } from '../../config/permissions';
 
 export const AddMachineModal = ({ isOpen, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
-    id: `AST-${Math.floor(109 + Math.random() * 900)}`,
+    id: `MCH-${Math.floor(100 + Math.random() * 900)}`,
     name: '',
-    sector: SECTORS.PRODUCTION,
-    department: 'Machining Line 2',
+    type: '',
+    sector: 'Sector 1 (Production & Manufacturing)',
+    department: 'Machining Line 1',
     category: 'Machining',
-    location: 'Bay A - Line 2',
+    location: 'Bay A - Line 1',
     status: 'Operational',
     healthScore: 100,
     manufacturer: 'Haas Automation',
-    power: '18 kW'
+    power: '25 kW'
   });
 
   const [submitted, setSubmitted] = useState(false);
@@ -28,13 +29,20 @@ export const AddMachineModal = ({ isOpen, onClose, onSubmit }) => {
     e.preventDefault();
     const newMachine = {
       ...formData,
+      type: formData.type || formData.category || 'Industrial Machinery',
       lastMaintenance: new Date().toISOString().split('T')[0],
       nextScheduled: new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0],
       sensorsCount: 4,
       specs: {
-        power: formData.power || '20 kW',
+        power: formData.power || '25 kW',
         manufacturer: formData.manufacturer || 'Industrial Automation',
         modelYear: '2026'
+      },
+      readings: {
+        temperature: 52.0,
+        vibration: 1.2,
+        pressure: 5.5,
+        power: parseFloat(formData.power) || 25.0
       }
     };
 
@@ -99,6 +107,18 @@ export const AddMachineModal = ({ isOpen, onClose, onSubmit }) => {
 
           <div className="form-row">
             <div className="form-group">
+              <label className="form-label">Machine Type</label>
+              <input
+                type="text"
+                name="type"
+                className="form-control"
+                placeholder="e.g. CNC Lathe, Stamping Press, Robot"
+                value={formData.type}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="form-group">
               <label className="form-label">Industry Sector</label>
               <select
                 name="sector"
@@ -106,12 +126,17 @@ export const AddMachineModal = ({ isOpen, onClose, onSubmit }) => {
                 value={formData.sector}
                 onChange={handleChange}
               >
-                <option value={SECTORS.PRODUCTION}>{SECTORS.PRODUCTION}</option>
-                <option value={SECTORS.MECHANICAL}>{SECTORS.MECHANICAL}</option>
-                <option value={SECTORS.ELECTRICAL}>{SECTORS.ELECTRICAL}</option>
+                <option value="Sector 1 (Production & Manufacturing)">Sector 1 (Production & Manufacturing)</option>
+                <option value="Sector 2 (Heavy Machining & Fabrication)">Sector 2 (Heavy Machining & Fabrication)</option>
+                <option value="Sector 3 (Assembly & Packaging)">Sector 3 (Assembly & Packaging)</option>
+                <option value="Sector 4 (Material Handling & Logistics)">Sector 4 (Material Handling & Logistics)</option>
+                <option value="Mechanical Department">Mechanical Department</option>
+                <option value="Electrical Department">Electrical Department</option>
               </select>
             </div>
+          </div>
 
+          <div className="form-row">
             <div className="form-group">
               <label className="form-label">Equipment Category</label>
               <select

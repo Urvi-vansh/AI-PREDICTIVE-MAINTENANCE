@@ -63,8 +63,8 @@ export const AssetDetailsModal = ({
                 <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary-600)', textTransform: 'uppercase' }}>
                   {asset.id} • {asset.type || asset.category}
                 </span>
-                <span className="badge badge-info" style={{ fontSize: '0.7rem' }}>
-                  Source: {asset.dataSource || 'Demo Data'}
+                <span className="badge badge-neutral" style={{ fontSize: '0.7rem', border: '1px solid var(--border-medium)' }}>
+                  Source: {asset.dataSource || 'Manual Entry'}
                 </span>
               </div>
               <h2 style={{ fontSize: '1.35rem', color: 'var(--text-main)', marginTop: '0.2rem', marginBottom: '0.25rem' }}>
@@ -103,24 +103,28 @@ export const AssetDetailsModal = ({
               >
                 <Info size={14} /> Info & Telemetry
               </button>
-              <button
-                className={`btn btn-sm ${activeTab === 'history' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setActiveTab('history')}
-              >
-                <Calendar size={14} /> Servicing History ({asset.maintenanceHistory?.length || 0})
-              </button>
+              {!isAdmin && (
+                <button
+                  className={`btn btn-sm ${activeTab === 'history' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setActiveTab('history')}
+                >
+                  <Calendar size={14} /> Servicing History ({asset.maintenanceHistory?.length || 0})
+                </button>
+              )}
               <button
                 className={`btn btn-sm ${activeTab === 'downtime' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setActiveTab('downtime')}
               >
                 <Clock size={14} /> Downtime Logs ({linkedDowntimes.length})
               </button>
-              <button
-                className={`btn btn-sm ${activeTab === 'spare-parts' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setActiveTab('spare-parts')}
-              >
-                <Wrench size={14} /> Spare Parts ({linkedParts.length})
-              </button>
+              {!isAdmin && (
+                <button
+                  className={`btn btn-sm ${activeTab === 'spare-parts' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setActiveTab('spare-parts')}
+                >
+                  <Wrench size={14} /> Spare Parts ({linkedParts.length})
+                </button>
+              )}
               <button
                 className={`btn btn-sm ${activeTab === 'alerts' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setActiveTab('alerts')}
@@ -231,7 +235,7 @@ export const AssetDetailsModal = ({
           )}
 
           {/* TAB 2: MAINTENANCE HISTORY */}
-          {activeTab === 'history' && (
+          {activeTab === 'history' && !isAdmin && (
             <div>
               <h4 style={{ fontSize: '0.9rem', color: 'var(--text-main)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Calendar size={16} className="text-blue" /> Equipment Servicing Log & Work Orders
@@ -315,7 +319,7 @@ export const AssetDetailsModal = ({
           )}
 
           {/* TAB 4: COMPATIBLE SPARE PARTS */}
-          {activeTab === 'spare-parts' && (
+          {activeTab === 'spare-parts' && !isAdmin && (
             <div>
               <h4 style={{ fontSize: '0.9rem', color: 'var(--text-main)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Wrench size={16} className="text-blue" /> Compatible Replacement Spare Parts

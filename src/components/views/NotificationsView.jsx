@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card } from '../common/Card';
 import { Bell, ShieldAlert, AlertTriangle, Info, Check, Search, CheckCheck, ArrowRight } from 'lucide-react';
 
-export const NotificationsView = ({ notifications = [], onMarkAllRead, onNavigateTab }) => {
+export const NotificationsView = ({ notifications = [], onMarkAllRead, onNavigateTab, userRole = 'admin' }) => {
   const [filterType, setFilterType] = useState('All');
   const [readFilter, setReadFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,12 +24,15 @@ export const NotificationsView = ({ notifications = [], onMarkAllRead, onNavigat
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const handleNotificationClick = (item) => {
-    if (item.title.toLowerCase().includes('alert') || item.title.toLowerCase().includes('vibration') || item.title.toLowerCase().includes('temperature')) {
+    const titleLower = item.title.toLowerCase();
+    if (titleLower.includes('approval') || titleLower.includes('access request') || titleLower.includes('account') || titleLower.includes('personnel')) {
+      if (onNavigateTab) onNavigateTab('users');
+    } else if (titleLower.includes('alert') || titleLower.includes('vibration') || titleLower.includes('temperature') || titleLower.includes('failure')) {
       if (onNavigateTab) onNavigateTab('alerts');
-    } else if (item.title.toLowerCase().includes('machine') || item.title.toLowerCase().includes('asset')) {
+    } else if (titleLower.includes('machine') || titleLower.includes('asset')) {
       if (onNavigateTab) onNavigateTab('assets');
     } else {
-      if (onNavigateTab) onNavigateTab('work-orders');
+      if (onNavigateTab) onNavigateTab(userRole === 'admin' ? 'dashboard' : 'work-orders');
     }
   };
 

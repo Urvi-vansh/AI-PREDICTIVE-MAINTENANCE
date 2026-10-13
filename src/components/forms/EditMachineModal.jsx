@@ -117,7 +117,10 @@ export const EditMachineModal = ({ isOpen, onClose, onSubmit, asset }) => {
               onChange={handleChange}
               required
             >
-              <option value="Production & Manufacturing">Production & Manufacturing</option>
+              <option value="Sector 1 (Production & Manufacturing)">Sector 1 (Production & Manufacturing)</option>
+              <option value="Sector 2 (Heavy Machining & Fabrication)">Sector 2 (Heavy Machining & Fabrication)</option>
+              <option value="Sector 3 (Assembly & Packaging)">Sector 3 (Assembly & Packaging)</option>
+              <option value="Sector 4 (Material Handling & Logistics)">Sector 4 (Material Handling & Logistics)</option>
               <option value="Mechanical Department">Mechanical Department</option>
               <option value="Electrical Department">Electrical Department</option>
             </select>

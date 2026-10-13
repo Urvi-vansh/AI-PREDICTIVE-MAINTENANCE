@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { Calendar, PlusCircle, CheckCircle } from 'lucide-react';
-import { MOCK_ASSETS } from '../../mockData/industrialData';
 
-export const CreatePreventiveScheduleModal = ({ isOpen, onClose, onSubmitSchedule }) => {
-  const [selectedMachineId, setSelectedMachineId] = useState(MOCK_ASSETS[0]?.id || 'AST-101');
+export const CreatePreventiveScheduleModal = ({ isOpen, onClose, onSubmitSchedule, assets = [] }) => {
+  const [selectedMachineId, setSelectedMachineId] = useState(assets[0]?.id || '');
   const [title, setTitle] = useState('');
   const [frequency, setFrequency] = useState('Monthly');
   const [nextDueDate, setNextDueDate] = useState(
@@ -13,16 +12,24 @@ export const CreatePreventiveScheduleModal = ({ isOpen, onClose, onSubmitSchedul
   const [assignedTech, setAssignedTech] = useState('Marcus Vance');
   const [instructions, setInstructions] = useState('');
 
-  const currentMachine = MOCK_ASSETS.find((a) => a.id === selectedMachineId) || MOCK_ASSETS[0];
+  useEffect(() => {
+    if (assets.length > 0 && (!selectedMachineId || !assets.some(a => a.id === selectedMachineId))) {
+      setSelectedMachineId(assets[0].id);
+    }
+  }, [assets, selectedMachineId]);
+
+  const currentMachine = assets.find((a) => a.id === selectedMachineId) || assets[0];
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!currentMachine) return;
+
     const newSchedule = {
       id: `PM-${Math.floor(700 + Math.random() * 90)}`,
       machineId: currentMachine.id,
       machineName: currentMachine.name,
       sector: currentMachine.sector,
-      department: currentMachine.department,
+      department: currentMachine.department || currentMachine.sector,
       title,
       frequency,
       nextDueDate,
@@ -39,21 +46,29 @@ export const CreatePreventiveScheduleModal = ({ isOpen, onClose, onSubmitSchedul
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Create Preventive Servicing Schedule">
       <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label className="form-label">Select Target Machine Asset</label>
-          <select
-            className="form-control form-select"
-            value={selectedMachineId}
-            onChange={(e) => setSelectedMachineId(e.target.value)}
-            required
-          >
-            {MOCK_ASSETS.map((ast) => (
-              <option key={ast.id} value={ast.id}>
-                {ast.id} — {ast.name} ({ast.sector})
-              </option>
-            ))}
-          </select>
-        </div>
+        {assets.length === 0 ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', marginBottom: '1rem' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
+              No machines registered in the system yet. Please add a machine before scheduling maintenance.
+            </p>
+          </div>
+        ) : (
+          <div className="form-group">
+            <label className="form-label">Select Target Machine Asset</label>
+            <select
+              className="form-control form-select"
+              value={selectedMachineId}
+              onChange={(e) => setSelectedMachineId(e.target.value)}
+              required
+            >
+              {assets.map((ast) => (
+                <option key={ast.id} value={ast.id}>
+                  {ast.id} — {ast.name} ({ast.sector})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="form-group">
           <label className="form-label">Inspection / Servicing Task Title</label>
@@ -128,7 +143,7 @@ export const CreatePreventiveScheduleModal = ({ isOpen, onClose, onSubmitSchedul
           <button type="button" className="btn btn-secondary" onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary">
+          <button type="submit" className="btn btn-primary" disabled={assets.length === 0}>
             <PlusCircle size={16} /> Save & Schedule Servicing
           </button>
         </div>

@@ -44,7 +44,7 @@ export const AlertDetailsModal = ({
   const isOverdue =
     alert.status !== 'Closed' &&
     alert.deadline &&
-    new Date(alert.deadline) < new Date('2026-10-10');
+    new Date(alert.deadline) < new Date();
 
   const isSectorHead = ['production_head', 'mechanical_head', 'electrical_head', 'admin'].includes(userRole);
   const isTechnician = ['mechanical_tech', 'electrical_tech'].includes(userRole);

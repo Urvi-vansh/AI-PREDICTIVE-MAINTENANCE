@@ -19,6 +19,7 @@ import { AdjustStockModal } from '../forms/AdjustStockModal';
 
 export const SparePartsView = ({
   spareParts = [],
+  assets = [],
   onAddPart,
   onEditPart,
   onAdjustStock,
@@ -302,6 +303,7 @@ export const SparePartsView = ({
           isOpen={isFormModalOpen}
           onClose={() => { setIsFormModalOpen(false); setSelectedPartForEdit(null); }}
           initialPart={selectedPartForEdit}
+          assets={assets}
           onSubmit={(partObj) => {
             if (selectedPartForEdit) onEditPart(partObj);
             else onAddPart(partObj);

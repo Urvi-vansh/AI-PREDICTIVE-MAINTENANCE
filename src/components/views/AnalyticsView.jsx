@@ -24,11 +24,14 @@ export const AnalyticsView = ({
   workOrders = [],
   downtimeLogs = [],
   preventiveSchedules = [],
-  spareParts = []
+  spareParts = [],
+  userRole = 'admin'
 }) => {
   const [selectedReportTab, setSelectedReportTab] = useState('failures');
   const [sectorFilter, setSectorFilter] = useState('All');
   const [dateRange, setDateRange] = useState('30d');
+
+  const isAdmin = userRole === 'admin';
 
   // Filter raw data by sector
   const filteredAssets = assets.filter(a => sectorFilter === 'All' || a.sector === sectorFilter);
@@ -41,10 +44,10 @@ export const AnalyticsView = ({
   const totalFailures = filteredAlerts.length;
   const criticalFailures = filteredAlerts.filter(a => a.severity === 'Critical').length;
   const resolvedIncidents = filteredAlerts.filter(a => a.status === 'Resolved' || a.status === 'Closed').length;
-  const overdueTasks = filteredWorkOrders.filter(w => new Date(w.dueDate) < new Date('2026-10-10') && w.status !== 'Completed').length;
+  const overdueTasks = filteredWorkOrders.filter(w => new Date(w.dueDate) < new Date() && w.status !== 'Completed').length;
   const totalDowntimeHours = filteredDowntimes.reduce((acc, d) => acc + (d.downtimeHours || 0), 0);
   const preventiveOnTime = filteredPreventive.filter(p => p.status === 'Upcoming' || p.status === 'Completed').length;
-  const preventiveCompliancePct = filteredPreventive.length > 0 ? Math.round((preventiveOnTime / filteredPreventive.length) * 100) : 100;
+  const preventiveCompliancePct = filteredPreventive.length > 0 ? Math.round((preventiveOnTime / filteredPreventive.length) * 100) : 0;
   const lowStockPartsCount = spareParts.filter(p => p.stockQuantity <= p.minThreshold).length;
 
   // CSV Export Handlers
@@ -118,12 +121,14 @@ export const AnalyticsView = ({
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
             <h2 style={{ fontSize: '1.25rem', color: 'var(--text-main)' }}>Plant Operational Performance Analytics</h2>
-            <span className="badge badge-info" style={{ fontSize: '0.7rem' }}>
-              Mode: Demo Data & Consistent Sample Analytics
+            <span className="badge badge-neutral" style={{ fontSize: '0.7rem', border: '1px solid var(--border-medium)' }}>
+              Operational Analytics
             </span>
           </div>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            Comprehensive reporting for failures, resolved incidents, overdue SLA tasks, downtime, preventive compliance, & spare parts
+            {isAdmin
+              ? 'Comprehensive reporting for failures, telemetry incidents, and machine stoppage downtime'
+              : 'Comprehensive reporting for failures, resolved incidents, overdue SLA tasks, downtime, preventive compliance, & spare parts'}
           </p>
         </div>
 
@@ -191,14 +196,25 @@ export const AnalyticsView = ({
           </div>
         </Card>
 
-        <Card title="Preventive Compliance Rate" subtitle="Servicing Schedules On-Time">
-          <div style={{ fontSize: '2.2rem', fontWeight: 700, color: preventiveCompliancePct > 80 ? '#16a34a' : '#d97706', marginTop: '0.3rem' }}>
-            {preventiveCompliancePct}%
-          </div>
-          <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
-            {preventiveOnTime} of {filteredPreventive.length} schedules on track
-          </div>
-        </Card>
+        {!isAdmin ? (
+          <Card title="Preventive Compliance Rate" subtitle="Servicing Schedules On-Time">
+            <div style={{ fontSize: '2.2rem', fontWeight: 700, color: preventiveCompliancePct > 80 ? '#16a34a' : '#d97706', marginTop: '0.3rem' }}>
+              {preventiveCompliancePct}%
+            </div>
+            <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+              {preventiveOnTime} of {filteredPreventive.length} schedules on track
+            </div>
+          </Card>
+        ) : (
+          <Card title="Operational Availability" subtitle="Fleet In-Service Rate">
+            <div style={{ fontSize: '2.2rem', fontWeight: 700, color: '#16a34a', marginTop: '0.3rem' }}>
+              {filteredAssets.length > 0 ? Math.round((filteredAssets.filter(a => a.status === 'Operational').length / filteredAssets.length) * 100) : 100}%
+            </div>
+            <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+              {filteredAssets.filter(a => a.status === 'Operational').length} of {filteredAssets.length} machines operational
+            </div>
+          </Card>
+        )}
 
         <Card title="Facility Downtime Hours" subtitle="Recorded Stoppages">
           <div style={{ fontSize: '2.2rem', fontWeight: 700, color: '#dc2626', marginTop: '0.3rem' }}>
@@ -226,12 +242,14 @@ export const AnalyticsView = ({
           <CheckCircle2 size={15} /> Resolved Incidents ({resolvedIncidents})
         </button>
 
-        <button
-          className={`btn btn-sm ${selectedReportTab === 'overdue' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setSelectedReportTab('overdue')}
-        >
-          <AlertTriangle size={15} /> Overdue Tasks & SLA ({overdueTasks})
-        </button>
+        {!isAdmin && (
+          <button
+            className={`btn btn-sm ${selectedReportTab === 'overdue' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setSelectedReportTab('overdue')}
+          >
+            <AlertTriangle size={15} /> Overdue Tasks & SLA ({overdueTasks})
+          </button>
+        )}
 
         <button
           className={`btn btn-sm ${selectedReportTab === 'downtime' ? 'btn-primary' : 'btn-secondary'}`}
@@ -240,19 +258,23 @@ export const AnalyticsView = ({
           <Clock size={15} /> Machine Downtime ({filteredDowntimes.length})
         </button>
 
-        <button
-          className={`btn btn-sm ${selectedReportTab === 'preventive' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setSelectedReportTab('preventive')}
-        >
-          <Calendar size={15} /> Preventive Maintenance ({filteredPreventive.length})
-        </button>
+        {!isAdmin && (
+          <button
+            className={`btn btn-sm ${selectedReportTab === 'preventive' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setSelectedReportTab('preventive')}
+          >
+            <Calendar size={15} /> Preventive Maintenance ({filteredPreventive.length})
+          </button>
+        )}
 
-        <button
-          className={`btn btn-sm ${selectedReportTab === 'spare-parts' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setSelectedReportTab('spare-parts')}
-        >
-          <Package size={15} /> Spare Parts Risk ({lowStockPartsCount} Low)
-        </button>
+        {!isAdmin && (
+          <button
+            className={`btn btn-sm ${selectedReportTab === 'spare-parts' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setSelectedReportTab('spare-parts')}
+          >
+            <Package size={15} /> Spare Parts Risk ({lowStockPartsCount} Low)
+          </button>
+        )}
       </div>
 
       {/* REPORT CONTENT DISPLAY */}
@@ -329,7 +351,7 @@ export const AnalyticsView = ({
         </Card>
       )}
 
-      {selectedReportTab === 'overdue' && (
+      {selectedReportTab === 'overdue' && !isAdmin && (
         <Card title={`Overdue Tasks & SLA Violations Report (${overdueTasks} Overdue Tickets)`}>
           <div className="table-container" style={{ border: 'none' }}>
             <table className="table">
@@ -345,19 +367,27 @@ export const AnalyticsView = ({
                 </tr>
               </thead>
               <tbody>
-                {filteredWorkOrders.filter(w => new Date(w.dueDate) < new Date('2026-10-10') && w.status !== 'Completed').map((wo) => (
-                  <tr key={wo.id}>
-                    <td><strong>{wo.id}</strong></td>
-                    <td>{wo.assetName} ({wo.assetId})</td>
-                    <td>{wo.sector || 'Plant Floor'}</td>
-                    <td><span style={{ color: '#dc2626', fontWeight: 700 }}>{wo.priority}</span></td>
-                    <td><strong style={{ color: '#dc2626' }}>{wo.dueDate} (Overdue)</strong></td>
-                    <td>{wo.assignedTo}</td>
-                    <td>
-                      <span className="badge badge-critical">SLA Overdue</span>
+                {filteredWorkOrders.filter(w => new Date(w.dueDate) < new Date() && w.status !== 'Completed').length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                      No maintenance tasks are currently overdue.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredWorkOrders.filter(w => new Date(w.dueDate) < new Date() && w.status !== 'Completed').map((wo) => (
+                    <tr key={wo.id}>
+                      <td><strong>{wo.id}</strong></td>
+                      <td>{wo.assetName} ({wo.assetId})</td>
+                      <td>{wo.sector || 'Plant Floor'}</td>
+                      <td><span style={{ color: '#dc2626', fontWeight: 700 }}>{wo.priority}</span></td>
+                      <td><strong style={{ color: '#dc2626' }}>{wo.dueDate} (Overdue)</strong></td>
+                      <td>{wo.assignedTo}</td>
+                      <td>
+                        <span className="badge badge-critical">SLA Overdue</span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -397,7 +427,7 @@ export const AnalyticsView = ({
         </Card>
       )}
 
-      {selectedReportTab === 'preventive' && (
+      {selectedReportTab === 'preventive' && !isAdmin && (
         <Card title={`Preventive Maintenance Compliance Report (${filteredPreventive.length} Schedules)`}>
           <div className="table-container" style={{ border: 'none' }}>
             <table className="table">
@@ -430,7 +460,7 @@ export const AnalyticsView = ({
         </Card>
       )}
 
-      {selectedReportTab === 'spare-parts' && (
+      {selectedReportTab === 'spare-parts' && !isAdmin && (
         <Card title={`Spare Parts Inventory Risk & Turnover Report (${spareParts.length} Components)`}>
           <div className="table-container" style={{ border: 'none' }}>
             <table className="table">

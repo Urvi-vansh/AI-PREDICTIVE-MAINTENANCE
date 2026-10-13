@@ -39,7 +39,7 @@ export const EquipmentFleetView = ({
 
   const machineTypes = ['All', ...new Set(assets.map((a) => a.type || a.category).filter(Boolean))];
   const departments = ['All', ...new Set(assets.map((a) => a.department).filter(Boolean))];
-  const sectors = ['All', 'Production & Manufacturing', 'Mechanical Department', 'Electrical Department'];
+  const sectors = ['All', 'Sector 1', 'Sector 2', 'Sector 3', 'Sector 4', 'Mechanical Department', 'Electrical Department'];
   const statuses = ['All', 'Operational', 'Warning', 'Critical', 'Offline'];
 
   const filteredAssets = assets.filter((asset) => {
@@ -48,7 +48,11 @@ export const EquipmentFleetView = ({
       asset.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       asset.location.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesSector = sectorFilter === 'All' || asset.sector === sectorFilter;
+    const matchesSector =
+      sectorFilter === 'All' ||
+      asset.sector === sectorFilter ||
+      (asset.sector && sectorFilter && asset.sector.startsWith(sectorFilter)) ||
+      (sectorFilter && asset.sector && sectorFilter.startsWith(asset.sector));
     const matchesType = typeFilter === 'All' || (asset.type || asset.category) === typeFilter;
     const matchesDept = deptFilter === 'All' || asset.department === deptFilter;
     const matchesStatus = statusFilter === 'All' || asset.status === statusFilter;
@@ -100,9 +104,11 @@ export const EquipmentFleetView = ({
             </button>
           )}
 
-          <button className="btn btn-primary btn-sm" onClick={onOpenWorkOrderModal}>
-            <Wrench size={16} /> Log Maintenance Task
-          </button>
+          {!isAdmin && (
+            <button className="btn btn-primary btn-sm" onClick={onOpenWorkOrderModal}>
+              <Wrench size={16} /> Log Maintenance Task
+            </button>
+          )}
         </div>
       </div>
 
@@ -278,7 +284,7 @@ export const EquipmentFleetView = ({
                         </td>
                         <td>
                           <span className="nav-badge" style={{ fontSize: '0.7rem' }}>
-                            {asset.dataSource || 'Demo Data'}
+                            {asset.dataSource || 'Manual Entry'}
                           </span>
                         </td>
                         <td>

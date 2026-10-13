@@ -19,6 +19,7 @@ import { DowntimeTrackingView } from './DowntimeTrackingView';
 
 export const WorkOrdersView = ({
   workOrders = [],
+  assets = [],
   onUpdateWOStatus,
   onOpenWorkOrderModal,
   preventiveSchedules = [],
@@ -49,7 +50,7 @@ export const WorkOrdersView = ({
       return matchesSearch && matchesSector && wo.priority === 'High';
     }
     if (activeFilterTab === 'Overdue') {
-      const isOverdue = new Date(wo.dueDate) < new Date('2026-10-10') && wo.status !== 'Completed';
+      const isOverdue = new Date(wo.dueDate) < new Date() && wo.status !== 'Completed';
       return matchesSearch && matchesSector && isOverdue;
     }
     if (activeFilterTab !== 'All') {
@@ -94,6 +95,7 @@ export const WorkOrdersView = ({
       {moduleTab === 'preventive' && (
         <PreventiveMaintenanceView
           schedules={preventiveSchedules}
+          assets={assets}
           onCreateSchedule={onCreatePreventiveSchedule}
           onCompleteTask={onCompletePreventiveTask}
           userRole={user ? user.role : 'admin'}
@@ -104,6 +106,7 @@ export const WorkOrdersView = ({
       {moduleTab === 'downtime' && (
         <DowntimeTrackingView
           downtimeLogs={downtimeLogs}
+          assets={assets}
           onRecordDowntime={onRecordDowntime}
           user={user}
         />
@@ -205,7 +208,7 @@ export const WorkOrdersView = ({
                     </tr>
                   ) : (
                     paginatedWorkOrders.map((wo) => {
-                      const isOverdue = new Date(wo.dueDate) < new Date('2026-10-10') && wo.status !== 'Completed';
+                      const isOverdue = new Date(wo.dueDate) < new Date() && wo.status !== 'Completed';
                       return (
                         <tr key={wo.id}>
                           <td>

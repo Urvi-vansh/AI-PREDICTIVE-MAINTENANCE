@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { ShieldAlert, PlusCircle, CheckCircle } from 'lucide-react';
-import { MOCK_ASSETS } from '../../mockData/industrialData';
 
-export const CreateAlertModal = ({ isOpen, onClose, onSubmitAlert }) => {
-  const [selectedMachineId, setSelectedMachineId] = useState(MOCK_ASSETS[0]?.id || 'AST-101');
+export const CreateAlertModal = ({ isOpen, onClose, onSubmitAlert, assets = [] }) => {
+  const [selectedMachineId, setSelectedMachineId] = useState(assets[0]?.id || '');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [severity, setSeverity] = useState('Warning');
@@ -13,12 +12,18 @@ export const CreateAlertModal = ({ isOpen, onClose, onSubmitAlert }) => {
     new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0]
   );
 
-  const currentMachine = MOCK_ASSETS.find((a) => a.id === selectedMachineId) || MOCK_ASSETS[0];
+  useEffect(() => {
+    if (assets.length > 0 && (!selectedMachineId || !assets.some(a => a.id === selectedMachineId))) {
+      setSelectedMachineId(assets[0].id);
+    }
+  }, [assets, selectedMachineId]);
+
+  const currentMachine = assets.find((a) => a.id === selectedMachineId) || assets[0];
 
   const handleMachineChange = (e) => {
     const id = e.target.value;
     setSelectedMachineId(id);
-    const mac = MOCK_ASSETS.find((a) => a.id === id);
+    const mac = assets.find((a) => a.id === id);
     if (mac) {
       if (mac.sector === 'Electrical Department') setAssignedTech('Elena Rostova');
       else if (mac.sector === 'Mechanical Department') setAssignedTech('David Miller');
@@ -28,21 +33,26 @@ export const CreateAlertModal = ({ isOpen, onClose, onSubmitAlert }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!currentMachine) return;
 
     const newAlertId = `ALT-${Math.floor(900 + Math.random() * 90)}`;
     const nowTimestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
 
     // Automatic Sector Head Routing
-    let sectorHeadName = 'Robert Chen';
+    let sectorHeadName = 'Sector Operations Head';
     if (currentMachine.sector === 'Mechanical Department') sectorHeadName = 'David Miller';
-    if (currentMachine.sector === 'Electrical Department') sectorHeadName = 'Sarah Jenkins';
+    else if (currentMachine.sector === 'Electrical Department') sectorHeadName = 'Sarah Jenkins';
+    else if (currentMachine.sector?.includes('1')) sectorHeadName = 'Sector Head - Sector 1';
+    else if (currentMachine.sector?.includes('2')) sectorHeadName = 'Sector Head - Sector 2';
+    else if (currentMachine.sector?.includes('3')) sectorHeadName = 'Sector Head - Sector 3';
+    else if (currentMachine.sector?.includes('4')) sectorHeadName = 'Sector Head - Sector 4';
 
     const newAlert = {
       id: newAlertId,
       machineId: currentMachine.id,
       machineName: currentMachine.name,
       sector: currentMachine.sector,
-      department: currentMachine.department,
+      department: currentMachine.department || currentMachine.sector,
       title: title,
       description: description,
       severity: severity,
@@ -61,7 +71,7 @@ export const CreateAlertModal = ({ isOpen, onClose, onSubmitAlert }) => {
           actor: 'Manual User Input',
           role: 'Operations Lead',
           action: 'Created Alert',
-          notes: `Demo alert logged. Auto-routed to ${sectorHeadName} (${currentMachine.sector}).`
+          notes: `Failure alert logged. Auto-routed to ${sectorHeadName} (${currentMachine.sector}).`
         }
       ],
       escalationHistory: []
@@ -72,34 +82,46 @@ export const CreateAlertModal = ({ isOpen, onClose, onSubmitAlert }) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create Demo Failure Alert">
+    <Modal isOpen={isOpen} onClose={onClose} title="Create Failure Alert">
       <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label className="form-label">Select Target Machine Asset</label>
-          <select
-            className="form-control form-select"
-            value={selectedMachineId}
-            onChange={handleMachineChange}
-            required
-          >
-            {MOCK_ASSETS.map((ast) => (
-              <option key={ast.id} value={ast.id}>
-                {ast.id} — {ast.name} ({ast.sector})
-              </option>
-            ))}
-          </select>
-        </div>
+        {assets.length === 0 ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', marginBottom: '1rem' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
+              No machines registered in the system yet. Please add a machine before logging an alert.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="form-group">
+              <label className="form-label">Select Target Machine Asset</label>
+              <select
+                className="form-control form-select"
+                value={selectedMachineId}
+                onChange={handleMachineChange}
+                required
+              >
+                {assets.map((ast) => (
+                  <option key={ast.id} value={ast.id}>
+                    {ast.id} — {ast.name} ({ast.sector})
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem', padding: '0.75rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', fontSize: '0.8rem' }}>
-          <div>
-            <span style={{ color: 'var(--text-muted)' }}>Assigned Sector:</span>
-            <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{currentMachine.sector}</div>
-          </div>
-          <div>
-            <span style={{ color: 'var(--text-muted)' }}>Responsible Dept:</span>
-            <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{currentMachine.department}</div>
-          </div>
-        </div>
+            {currentMachine && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem', padding: '0.75rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', fontSize: '0.8rem' }}>
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>Assigned Sector:</span>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{currentMachine.sector}</div>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>Responsible Dept:</span>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{currentMachine.department || currentMachine.sector}</div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         <div className="form-group">
           <label className="form-label">Alert Title / Fault Headline</label>
@@ -171,8 +193,8 @@ export const CreateAlertModal = ({ isOpen, onClose, onSubmitAlert }) => {
           <button type="button" className="btn btn-secondary" onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary">
-            <PlusCircle size={16} /> Create & Route Demo Alert
+          <button type="submit" className="btn btn-primary" disabled={assets.length === 0}>
+            <PlusCircle size={16} /> Create & Route Alert
           </button>
         </div>
       </form>

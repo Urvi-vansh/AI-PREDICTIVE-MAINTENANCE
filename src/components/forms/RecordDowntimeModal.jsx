@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { Clock, PlusCircle, AlertOctagon } from 'lucide-react';
-import { MOCK_ASSETS } from '../../mockData/industrialData';
 
-export const RecordDowntimeModal = ({ isOpen, onClose, onRecordDowntime, user }) => {
-  const [selectedMachineId, setSelectedMachineId] = useState(MOCK_ASSETS[0]?.id || 'AST-101');
+export const RecordDowntimeModal = ({ isOpen, onClose, onRecordDowntime, user, assets = [] }) => {
+  const [selectedMachineId, setSelectedMachineId] = useState(assets[0]?.id || '');
   const [startTime, setStartTime] = useState(
     new Date(Date.now() - 3600000 * 2).toISOString().replace('T', ' ').substring(0, 16)
   );
@@ -15,7 +14,13 @@ export const RecordDowntimeModal = ({ isOpen, onClose, onRecordDowntime, user })
   const [reason, setReason] = useState('Unplanned Mechanical Breakdown');
   const [notes, setNotes] = useState('');
 
-  const currentMachine = MOCK_ASSETS.find((a) => a.id === selectedMachineId) || MOCK_ASSETS[0];
+  useEffect(() => {
+    if (assets.length > 0 && (!selectedMachineId || !assets.some(a => a.id === selectedMachineId))) {
+      setSelectedMachineId(assets[0].id);
+    }
+  }, [assets, selectedMachineId]);
+
+  const currentMachine = assets.find((a) => a.id === selectedMachineId) || assets[0];
 
   const calculateHours = (startStr, endStr, ongoing) => {
     if (ongoing) return 0;
@@ -31,13 +36,14 @@ export const RecordDowntimeModal = ({ isOpen, onClose, onRecordDowntime, user })
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!currentMachine) return;
     const hours = calculateHours(startTime, endTime, isOngoing);
     const newLog = {
       id: `DT-${Math.floor(300 + Math.random() * 90)}`,
       machineId: currentMachine.id,
       machineName: currentMachine.name,
       sector: currentMachine.sector,
-      department: currentMachine.department,
+      department: currentMachine.department || currentMachine.sector,
       startTime,
       endTime: isOngoing ? 'Ongoing' : endTime,
       downtimeHours: isOngoing ? 0 : hours,
@@ -56,21 +62,29 @@ export const RecordDowntimeModal = ({ isOpen, onClose, onRecordDowntime, user })
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Record Machine Stoppage / Downtime Log">
       <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label className="form-label">Select Target Stopped Machine</label>
-          <select
-            className="form-control form-select"
-            value={selectedMachineId}
-            onChange={(e) => setSelectedMachineId(e.target.value)}
-            required
-          >
-            {MOCK_ASSETS.map((ast) => (
-              <option key={ast.id} value={ast.id}>
-                {ast.id} — {ast.name} ({ast.sector})
-              </option>
-            ))}
-          </select>
-        </div>
+        {assets.length === 0 ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', marginBottom: '1rem' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
+              No machines registered in the system yet. Please add a machine before logging downtime.
+            </p>
+          </div>
+        ) : (
+          <div className="form-group">
+            <label className="form-label">Select Target Stopped Machine</label>
+            <select
+              className="form-control form-select"
+              value={selectedMachineId}
+              onChange={(e) => setSelectedMachineId(e.target.value)}
+              required
+            >
+              {assets.map((ast) => (
+                <option key={ast.id} value={ast.id}>
+                  {ast.id} — {ast.name} ({ast.sector})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
           <div className="form-group">
@@ -147,7 +161,7 @@ export const RecordDowntimeModal = ({ isOpen, onClose, onRecordDowntime, user })
           <button type="button" className="btn btn-secondary" onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary">
+          <button type="submit" className="btn btn-primary" disabled={assets.length === 0}>
             <PlusCircle size={16} /> Log Downtime Record
           </button>
         </div>

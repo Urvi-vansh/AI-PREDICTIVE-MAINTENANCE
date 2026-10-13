@@ -1,26 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './styles/index.css';
 import './styles/components.css';
 
 import {
-  MOCK_ASSETS,
-  MOCK_WORK_ORDERS,
-  MOCK_SENSORS,
-  MOCK_NOTIFICATIONS,
-  MOCK_ALERTS,
-  MOCK_SPARE_PARTS,
-  MOCK_PREVENTIVE_SCHEDULES,
-  MOCK_DOWNTIME_LOGS
-} from './mockData/industrialData';
-
-import {
-  DEMO_ACCOUNTS,
   ROLES,
   ROLE_PERMISSIONS,
   hasTabPermission,
   filterAssetsByRole,
   filterWorkOrdersByRole,
-  filterSensorsByRole
+  filterSensorsByRole,
+  getRequiredApprover,
+  canUserApproveTarget
 } from './config/permissions';
 
 import { Sidebar } from './components/common/Sidebar';
@@ -29,6 +19,7 @@ import { AssetDetailsModal } from './components/common/AssetDetailsModal';
 import { WorkOrderFormModal } from './components/forms/WorkOrderFormModal';
 import { AddMachineModal } from './components/forms/AddMachineModal';
 import { UnauthorizedAccess } from './components/common/UnauthorizedAccess';
+import { DEFAULT_SECTOR_MACHINES } from './mockData/defaultMachines';
 
 import { LoginView } from './components/views/LoginView';
 import { OverviewDashboard } from './components/views/OverviewDashboard';
@@ -44,6 +35,7 @@ import { SparePartsView } from './components/views/SparePartsView';
 import { AnalyticsView } from './components/views/AnalyticsView';
 import { NotificationsView } from './components/views/NotificationsView';
 import { SettingsView } from './components/views/SettingsView';
+import { PendingApprovalView } from './components/views/PendingApprovalView';
 
 export default function App() {
   // Auth state - default to logged out (Sign In page on initial load)
@@ -56,16 +48,161 @@ export default function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sectorFilterOverride, setSectorFilterOverride] = useState('All');
 
-  // Raw Mock Data States
-  const [rawAssets, setRawAssets] = useState(MOCK_ASSETS);
-  const [rawWorkOrders, setRawWorkOrders] = useState(MOCK_WORK_ORDERS);
-  const [rawSensors, setRawSensors] = useState(MOCK_SENSORS);
-  const [rawAlerts, setRawAlerts] = useState(MOCK_ALERTS);
-  const [rawSpareParts, setRawSpareParts] = useState(MOCK_SPARE_PARTS);
-  const [rawPreventiveSchedules, setRawPreventiveSchedules] = useState(MOCK_PREVENTIVE_SCHEDULES);
-  const [rawDowntimeLogs, setRawDowntimeLogs] = useState(MOCK_DOWNTIME_LOGS);
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
-  const [usersList, setUsersList] = useState(DEMO_ACCOUNTS);
+  // Default seed for pending user access so Department Head / Administrator can authorize immediately
+  const DEFAULT_INITIAL_USERS = [
+    {
+      name: 'raj',
+      email: 'rajvansh0@gmail.com',
+      role: ROLES.MECHANICAL_TECH,
+      title: 'Mechanical technician',
+      sector: 'Mechanical Department',
+      avatar: 'RJ',
+      employeeId: 'EMP-7492',
+      status: 'Pending Approval',
+      isApproved: false,
+      requestedAt: 'Just now',
+      description: 'Access requested as Mechanical technician (Mechanical Department). Approval routed to Mechanical Department Head.',
+      approverRole: ROLES.MECHANICAL_HEAD,
+      approverTitle: 'Mechanical Department Head'
+    }
+  ];
+
+  // Helper to compute pending approval count tailored to active user's approval authority
+  const getPendingApprovalCountForUser = (currentUser) => {
+    if (!currentUser) return 0;
+    if (currentUser.role === ROLES.ADMIN) {
+      // Admin ONLY authorizes Sector Heads and Department Heads (technicians route only to department heads)
+      return usersList.filter(
+        (u) =>
+          (u.status === 'Pending Approval' || (!u.isApproved && u.role !== ROLES.ADMIN)) &&
+          [ROLES.PRODUCTION_HEAD, ROLES.MECHANICAL_HEAD, ROLES.ELECTRICAL_HEAD].includes(u.role)
+      ).length;
+    }
+    if (currentUser.role === ROLES.MECHANICAL_HEAD) {
+      return usersList.filter((u) => (u.status === 'Pending Approval' || !u.isApproved) && u.role === ROLES.MECHANICAL_TECH).length;
+    }
+    if (currentUser.role === ROLES.ELECTRICAL_HEAD) {
+      return usersList.filter((u) => (u.status === 'Pending Approval' || !u.isApproved) && u.role === ROLES.ELECTRICAL_TECH).length;
+    }
+    return 0;
+  };
+
+  // Helper for localStorage persistence
+  const loadStored = (key, fallback) => {
+    try {
+      const saved = localStorage.getItem(`industrialcare_${key}`);
+      return saved ? JSON.parse(saved) : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
+  const saveStored = (key, data) => {
+    try {
+      localStorage.setItem(`industrialcare_${key}`, JSON.stringify(data));
+    } catch {}
+  };
+
+  const getInitialUsers = () => {
+    try {
+      const saved = localStorage.getItem('industrialcare_users');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return DEFAULT_INITIAL_USERS;
+  };
+
+  const getInitialAssets = () => {
+    try {
+      const saved = localStorage.getItem('industrialcare_assets');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length >= 40) {
+          return parsed;
+        }
+        if (Array.isArray(parsed) && parsed.some(a => a.id && a.id.startsWith('MCH-S1-'))) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return DEFAULT_SECTOR_MACHINES;
+  };
+
+  // Operational Data States (persisted in localStorage, default 10 machines per sector)
+  const [rawAssets, setRawAssets] = useState(getInitialAssets);
+  const [rawWorkOrders, setRawWorkOrders] = useState(() => loadStored('work_orders', []));
+  const [rawSensors, setRawSensors] = useState(() => loadStored('sensors', []));
+  const [rawAlerts, setRawAlerts] = useState(() => loadStored('alerts', []));
+  const [rawSpareParts, setRawSpareParts] = useState(() => loadStored('spare_parts', []));
+  const [rawPreventiveSchedules, setRawPreventiveSchedules] = useState(() => loadStored('preventive_schedules', []));
+  const [rawDowntimeLogs, setRawDowntimeLogs] = useState(() => loadStored('downtime_logs', []));
+  const [notifications, setNotifications] = useState(() => loadStored('notifications', []));
+  const [usersList, setUsersList] = useState(getInitialUsers);
+
+  // Synchronous users state and localStorage updater
+  const updateUsersList = (updater) => {
+    setUsersList((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      saveStored('users', next);
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    try { localStorage.setItem('industrialcare_assets', JSON.stringify(rawAssets)); } catch {}
+  }, [rawAssets]);
+  useEffect(() => {
+    try { localStorage.setItem('industrialcare_work_orders', JSON.stringify(rawWorkOrders)); } catch {}
+  }, [rawWorkOrders]);
+  useEffect(() => {
+    try { localStorage.setItem('industrialcare_sensors', JSON.stringify(rawSensors)); } catch {}
+  }, [rawSensors]);
+  useEffect(() => {
+    try { localStorage.setItem('industrialcare_alerts', JSON.stringify(rawAlerts)); } catch {}
+  }, [rawAlerts]);
+  useEffect(() => {
+    try { localStorage.setItem('industrialcare_spare_parts', JSON.stringify(rawSpareParts)); } catch {}
+  }, [rawSpareParts]);
+  useEffect(() => {
+    try { localStorage.setItem('industrialcare_preventive_schedules', JSON.stringify(rawPreventiveSchedules)); } catch {}
+  }, [rawPreventiveSchedules]);
+  useEffect(() => {
+    try { localStorage.setItem('industrialcare_downtime_logs', JSON.stringify(rawDowntimeLogs)); } catch {}
+  }, [rawDowntimeLogs]);
+  useEffect(() => {
+    try { localStorage.setItem('industrialcare_notifications', JSON.stringify(notifications)); } catch {}
+  }, [notifications]);
+  useEffect(() => {
+    saveStored('users', usersList);
+  }, [usersList]);
+
+  // Cross-tab synchronization via storage event listener
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'industrialcare_users') {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setUsersList(parsed);
+          }
+        } catch {}
+      }
+      if (e.key === 'industrialcare_notifications') {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setNotifications(parsed);
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Modals state
   const [selectedAsset, setSelectedAsset] = useState(null);
@@ -73,29 +210,225 @@ export default function App() {
   const [isAddMachineModalOpen, setIsAddMachineModalOpen] = useState(false);
 
   // Compute Role-Filtered Data
-  const roleAssets = user ? filterAssetsByRole(rawAssets, user.role) : [];
+  const roleAssets = user ? filterAssetsByRole(rawAssets, user.role, user) : [];
   const roleWorkOrders = user ? filterWorkOrdersByRole(rawWorkOrders, user.role, rawAssets) : [];
   const roleSensors = user ? filterSensorsByRole(rawSensors, user.role, rawAssets) : [];
 
   // Auth Handlers
   const handleLogin = (userInfo) => {
-    setUser(userInfo);
-    setIsLoggedIn(true);
-    const defaultTab = ROLE_PERMISSIONS[userInfo.role]?.defaultTab || 'dashboard';
-    setActiveTab(defaultTab);
+    // If logging in as System Administrator, access is granted immediately
+    if (userInfo.role === ROLES.ADMIN) {
+      const adminUser = {
+        ...userInfo,
+        status: 'Active',
+        isApproved: true
+      };
+      // Always pull latest users list from storage so any pending requests are refreshed
+      const latestUsers = getInitialUsers();
+      setUsersList(latestUsers);
+      setUser(adminUser);
+      setIsLoggedIn(true);
+      setActiveTab('dashboard');
+      return;
+    }
+
+    // For operational roles (technician, sector head, department head)
+    const latestUsers = getInitialUsers();
+    const existingUser = latestUsers.find(
+      (u) => u.email && u.email.toLowerCase() === userInfo.email.toLowerCase()
+    );
+
+    if (existingUser) {
+      const mergedUser = {
+        ...userInfo,
+        ...existingUser,
+        role: existingUser.role || userInfo.role,
+        title: existingUser.title || userInfo.title,
+        sector: existingUser.sector || userInfo.sector,
+        status: existingUser.status || 'Pending Approval',
+        isApproved: Boolean(existingUser.isApproved)
+      };
+      setUser(mergedUser);
+      setIsLoggedIn(true);
+      const defaultTab = ROLE_PERMISSIONS[mergedUser.role]?.defaultTab || 'dashboard';
+      setActiveTab(defaultTab);
+    } else {
+      // New user logging in for the first time: route to proper approver
+      const approver = getRequiredApprover(userInfo.role);
+      const newUserRecord = {
+        ...userInfo,
+        status: 'Pending Approval',
+        isApproved: false,
+        approverRole: approver.role,
+        approverTitle: approver.title,
+        requestedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        description: `Access requested as ${userInfo.title} (${userInfo.sector}). Authorization required from ${approver.title}.`
+      };
+
+      updateUsersList((prev) => [
+        newUserRecord,
+        ...prev.filter((u) => u.email.toLowerCase() !== newUserRecord.email.toLowerCase())
+      ]);
+
+      const newNotif = {
+        id: `NTF-${Date.now()}`,
+        title: `New Access Request: ${approver.shortTitle} Approval Required`,
+        desc: `${userInfo.name} (${userInfo.email}) requested access as ${userInfo.title} (${userInfo.sector}). Routed to ${approver.title} for authorization.`,
+        time: 'Just now',
+        type: 'warning',
+        targetRole: approver.role,
+        read: false
+      };
+      setNotifications((prev) => {
+        const next = [newNotif, ...prev];
+        saveStored('notifications', next);
+        return next;
+      });
+
+      setUser(newUserRecord);
+      setIsLoggedIn(true);
+    }
   };
 
   const handleRegisterUser = (newUser) => {
-    setUsersList((prev) => [newUser, ...prev]);
+    const isApprovalNeeded = newUser.role !== ROLES.ADMIN;
+    const approver = getRequiredApprover(newUser.role);
+    const userToSave = {
+      ...newUser,
+      status: isApprovalNeeded ? 'Pending Approval' : 'Active',
+      isApproved: !isApprovalNeeded,
+      approverRole: isApprovalNeeded ? approver.role : null,
+      approverTitle: isApprovalNeeded ? approver.title : null,
+      requestedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      description: isApprovalNeeded
+        ? `Registered as ${newUser.title} (${newUser.sector}). Routed to ${approver.title} for authorization.`
+        : 'Active administrator.'
+    };
+
+    updateUsersList((prev) => [
+      userToSave,
+      ...prev.filter((u) => u.email.toLowerCase() !== userToSave.email.toLowerCase())
+    ]);
+
     const newNotif = {
       id: `NTF-${Date.now()}`,
-      title: 'New Account Registered',
-      desc: `${newUser.name} registered as ${newUser.title} (${newUser.sector}). Welcome to IndustrialCare!`,
+      title: isApprovalNeeded
+        ? `New Access Request: ${approver.shortTitle} Approval Required`
+        : 'Admin Account Registered',
+      desc: isApprovalNeeded
+        ? `${newUser.name} (${newUser.email}) requested access as ${newUser.title} (${newUser.sector}). Routed to ${approver.title} for authorization.`
+        : `${newUser.name} registered as System Administrator.`,
       time: 'Just now',
-      type: 'info',
+      type: isApprovalNeeded ? 'warning' : 'info',
+      targetRole: isApprovalNeeded ? approver.role : ROLES.ADMIN,
       read: false
     };
-    setNotifications((prev) => [newNotif, ...prev]);
+    setNotifications((prev) => {
+      const next = [newNotif, ...prev];
+      saveStored('notifications', next);
+      return next;
+    });
+  };
+
+  const handleApproveUser = (userEmail) => {
+    const approverName = user ? user.name : 'Authorized Approver';
+    const approverRole = user ? (user.title || user.role) : 'Department Head / Admin';
+
+    updateUsersList((prev) =>
+      prev.map((u) => {
+        if (u.email.toLowerCase() === userEmail.toLowerCase()) {
+          return {
+            ...u,
+            status: 'Active',
+            isApproved: true,
+            approvedBy: approverName,
+            approvedByRole: approverRole,
+            approvedAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+          };
+        }
+        return u;
+      })
+    );
+
+    if (user && user.email.toLowerCase() === userEmail.toLowerCase()) {
+      setUser((prev) => ({ ...prev, status: 'Active', isApproved: true }));
+      const defaultTab = ROLE_PERMISSIONS[user.role]?.defaultTab || 'dashboard';
+      setActiveTab(defaultTab);
+    }
+
+    const currentUsers = getInitialUsers();
+    const targetUser = currentUsers.find((u) => u.email.toLowerCase() === userEmail.toLowerCase());
+    setNotifications((prev) => {
+      const next = [
+        {
+          id: `NTF-${Date.now()}`,
+          title: 'User Access Approved',
+          desc: `${approverRole} approved operational access for ${targetUser ? targetUser.name : userEmail} (${targetUser?.title || 'Personnel'}).`,
+          time: 'Just now',
+          type: 'info',
+          read: false
+        },
+        ...prev
+      ];
+      saveStored('notifications', next);
+      return next;
+    });
+  };
+
+  const handleRejectUser = (userEmail) => {
+    const rejectorName = user ? user.name : 'Authorized Approver';
+    const rejectorRole = user ? (user.title || user.role) : 'Department Head / Admin';
+
+    updateUsersList((prev) =>
+      prev.map((u) => {
+        if (u.email.toLowerCase() === userEmail.toLowerCase()) {
+          return {
+            ...u,
+            status: 'Rejected',
+            isApproved: false,
+            rejectedBy: rejectorName,
+            rejectedByRole: rejectorRole,
+            rejectedAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+          };
+        }
+        return u;
+      })
+    );
+
+    if (user && user.email.toLowerCase() === userEmail.toLowerCase()) {
+      setUser((prev) => ({ ...prev, status: 'Rejected', isApproved: false }));
+    }
+
+    const currentUsers = getInitialUsers();
+    const targetUser = currentUsers.find((u) => u.email.toLowerCase() === userEmail.toLowerCase());
+    setNotifications((prev) => {
+      const next = [
+        {
+          id: `NTF-${Date.now()}`,
+          title: 'User Access Request Rejected',
+          desc: `${rejectorRole} rejected access request for ${targetUser ? targetUser.name : userEmail}.`,
+          time: 'Just now',
+          type: 'warning',
+          read: false
+        },
+        ...prev
+      ];
+      saveStored('notifications', next);
+      return next;
+    });
+  };
+
+  const handleCheckApprovalStatus = () => {
+    if (!user) return;
+    const currentStored = loadStored('users', usersList);
+    const updated = currentStored.find((u) => u.email.toLowerCase() === user.email.toLowerCase());
+    if (updated) {
+      setUser(updated);
+      if (updated.isApproved || updated.status === 'Active') {
+        const defaultTab = ROLE_PERMISSIONS[updated.role]?.defaultTab || 'dashboard';
+        setActiveTab(defaultTab);
+      }
+    }
   };
 
   const handleLogout = () => {
@@ -105,7 +438,11 @@ export default function App() {
 
   // Machine Management Handlers
   const handleAddMachine = (newMachine) => {
-    setRawAssets((prev) => [newMachine, ...prev]);
+    setRawAssets((prev) => {
+      const next = [newMachine, ...prev];
+      saveStored('assets', next);
+      return next;
+    });
     const newNotif = {
       id: `NTF-${Date.now()}`,
       title: 'New Machine Asset Registered',
@@ -114,40 +451,52 @@ export default function App() {
       type: 'info',
       read: false
     };
-    setNotifications((prev) => [newNotif, ...prev]);
+    setNotifications((prev) => {
+      const next = [newNotif, ...prev];
+      saveStored('notifications', next);
+      return next;
+    });
   };
 
   const handleEditMachine = (updatedAsset) => {
-    setRawAssets((prev) =>
-      prev.map((ast) => (ast.id === updatedAsset.id ? updatedAsset : ast))
-    );
+    setRawAssets((prev) => {
+      const next = prev.map((ast) => (ast.id === updatedAsset.id ? updatedAsset : ast));
+      saveStored('assets', next);
+      return next;
+    });
     if (selectedAsset && selectedAsset.id === updatedAsset.id) {
       setSelectedAsset(updatedAsset);
     }
-    setNotifications((prev) => [
-      {
-        id: `NTF-${Date.now()}`,
-        title: 'Machine Record Updated',
-        desc: `Asset ${updatedAsset.id} (${updatedAsset.name}) profile updated.`,
-        time: 'Just now',
-        type: 'info',
-        read: false
-      },
-      ...prev
-    ]);
+    setNotifications((prev) => {
+      const next = [
+        {
+          id: `NTF-${Date.now()}`,
+          title: 'Machine Record Updated',
+          desc: `Asset ${updatedAsset.id} (${updatedAsset.name}) profile updated.`,
+          time: 'Just now',
+          type: 'info',
+          read: false
+        },
+        ...prev
+      ];
+      saveStored('notifications', next);
+      return next;
+    });
   };
 
   const handleDeactivateMachine = (assetId) => {
-    setRawAssets((prev) =>
-      prev.map((ast) => {
+    setRawAssets((prev) => {
+      const next = prev.map((ast) => {
         if (ast.id === assetId) {
           const newStatus = ast.status === 'Offline' ? 'Operational' : 'Offline';
           const newHealth = newStatus === 'Offline' ? 0 : 90;
           return { ...ast, status: newStatus, healthScore: newHealth };
         }
         return ast;
-      })
-    );
+      });
+      saveStored('assets', next);
+      return next;
+    });
     if (selectedAsset && selectedAsset.id === assetId) {
       setSelectedAsset((prev) => {
         const newStatus = prev.status === 'Offline' ? 'Operational' : 'Offline';
@@ -346,7 +695,7 @@ export default function App() {
     setRawAlerts((prev) => [newAlert, ...prev]);
     const newNotif = {
       id: `NTF-${Date.now()}`,
-      title: 'New Demo Failure Alert Created',
+      title: 'New Failure Alert Created',
       desc: `Alert ${newAlert.id} (${newAlert.title}) routed to ${newAlert.sector}.`,
       time: 'Just now',
       type: newAlert.severity === 'Critical' ? 'critical' : 'warning',
@@ -714,9 +1063,36 @@ export default function App() {
   const isSectorHead = user && [ROLES.PRODUCTION_HEAD, ROLES.MECHANICAL_HEAD, ROLES.ELECTRICAL_HEAD].includes(user.role);
   const isTechnician = user && [ROLES.MECHANICAL_TECH, ROLES.ELECTRICAL_TECH].includes(user.role);
 
+  const isPendingApproval = user && user.role !== ROLES.ADMIN && (!user.isApproved || user.status === 'Pending Approval' || user.status === 'Rejected');
+
   if (!isLoggedIn) {
     return <LoginView onLogin={handleLogin} onRegisterUser={handleRegisterUser} />;
   }
+
+  // If new user requires admin approval, show ONLY the Admin Approval Required screen (no data, no other options visible)
+  if (isPendingApproval) {
+    return (
+      <PendingApprovalView
+        user={user}
+        onLogout={handleLogout}
+        onCheckStatus={handleCheckApprovalStatus}
+      />
+    );
+  }
+
+  // Filter notifications relevant to active user's role and sector
+  const roleNotifications = notifications.filter((n) => {
+    if (!user) return true;
+    // Strict target role routing: notifications targeted to department heads go ONLY to that head
+    if (n.targetRole) {
+      return n.targetRole === user.role;
+    }
+    if (user.role === ROLES.ADMIN) return true;
+    if (n.sector) {
+      return n.sector === user.sector || n.sector === 'All Plant Sectors';
+    }
+    return true;
+  });
 
   return (
     <div className="app-container">
@@ -729,6 +1105,7 @@ export default function App() {
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
         user={user}
+        pendingApprovalCount={getPendingApprovalCountForUser(user)}
       />
 
       {/* Main Content Area */}
@@ -737,11 +1114,12 @@ export default function App() {
         <Header
           activeTab={activeTab}
           onOpenWorkOrderModal={() => setIsWorkOrderModalOpen(true)}
-          notifications={notifications}
+          notifications={roleNotifications}
           onMarkAllRead={handleMarkAllRead}
           user={user}
           onLogout={handleLogout}
           setMobileOpen={setMobileOpen}
+          onNavigateTab={(tab) => setActiveTab(tab)}
         />
 
         {/* View Pages Router & Access Protection Guard */}
@@ -761,6 +1139,9 @@ export default function App() {
                     assets={rawAssets}
                     workOrders={rawWorkOrders}
                     alerts={rawAlerts}
+                    usersList={usersList}
+                    onApproveUser={handleApproveUser}
+                    onRejectUser={handleRejectUser}
                     onUpdateWOStatus={handleUpdateWOStatus}
                     onAssignTask={handleAssignTask}
                     onSendReminder={handleSendReminder}
@@ -789,14 +1170,19 @@ export default function App() {
                     onOpenAddMachineModal={() => setIsAddMachineModalOpen(true)}
                     onOpenWorkOrderModal={() => setIsWorkOrderModalOpen(true)}
                     onSelectSectorFilter={(sectorName) => setSectorFilterOverride(sectorName)}
+                    pendingApprovalCount={getPendingApprovalCountForUser(user)}
                   />
                 )
               )}
 
               {activeTab === 'sectors' && (
                 <SectorsView
+                  assets={rawAssets}
+                  alerts={rawAlerts}
                   onSelectSectorFilter={(sectorName) => setSectorFilterOverride(sectorName)}
                   onNavigateTab={(tab) => setActiveTab(tab)}
+                  onOpenAddMachineModal={() => setIsAddMachineModalOpen(true)}
+                  userRole={user ? user.role : 'admin'}
                 />
               )}
 
@@ -816,10 +1202,11 @@ export default function App() {
               {activeTab === 'alerts' && (
                 <AlertsView
                   alerts={rawAlerts.filter(a => user.role === ROLES.ADMIN ? true : a.sector === user.sector)}
+                  assets={roleAssets}
                   onResolveAlert={handleResolveAlert}
                   onCreateAlert={handleCreateAlert}
                   onUpdateAlertStatus={handleUpdateAlertStatus}
-                  onSendReminder={handleSendAlertReminder}
+                  onSendReminder={handleSendReminder}
                   onReviseDeadline={handleReviseAlertDeadline}
                   onEscalateTask={handleEscalateAlert}
                   onVerifyCloseAlert={handleVerifyCloseAlert}
@@ -840,6 +1227,7 @@ export default function App() {
                 ) : (
                   <WorkOrdersView
                     workOrders={roleWorkOrders}
+                    assets={roleAssets}
                     onUpdateWOStatus={handleUpdateWOStatus}
                     onOpenWorkOrderModal={() => setIsWorkOrderModalOpen(true)}
                     preventiveSchedules={rawPreventiveSchedules}
@@ -855,13 +1243,17 @@ export default function App() {
               {activeTab === 'users' && (
                 <UsersManagementView
                   usersList={usersList}
+                  currentUser={user}
                   onAddUser={handleRegisterUser}
+                  onApproveUser={handleApproveUser}
+                  onRejectUser={handleRejectUser}
                 />
               )}
 
               {activeTab === 'spare-parts' && (
                 <SparePartsView
                   spareParts={rawSpareParts}
+                  assets={roleAssets}
                   onAddPart={handleAddSparePart}
                   onEditPart={handleEditSparePart}
                   onAdjustStock={handleAdjustSparePartStock}
@@ -877,14 +1269,16 @@ export default function App() {
                   downtimeLogs={rawDowntimeLogs}
                   preventiveSchedules={rawPreventiveSchedules}
                   spareParts={rawSpareParts}
+                  userRole={user ? user.role : 'admin'}
                 />
               )}
 
               {activeTab === 'notifications' && (
                 <NotificationsView
-                  notifications={notifications}
+                  notifications={roleNotifications}
                   onMarkAllRead={handleMarkAllRead}
                   onNavigateTab={(tab) => setActiveTab(tab)}
+                  userRole={user ? user.role : 'admin'}
                 />
               )}
 

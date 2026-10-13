@@ -1,26 +1,91 @@
 import React from 'react';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
-import { Building2, Cpu, ShieldAlert, Wrench, ArrowUpRight, CheckCircle2, User } from 'lucide-react';
-import { MOCK_SECTORS_SUMMARY } from '../../mockData/industrialData';
+import { Building2, Cpu, ShieldAlert, Wrench, ArrowUpRight, CheckCircle2, User, Plus } from 'lucide-react';
 
-export const SectorsView = ({ onSelectSectorFilter, onNavigateTab }) => {
+export const SectorsView = ({
+  assets = [],
+  alerts = [],
+  onSelectSectorFilter,
+  onNavigateTab,
+  onOpenAddMachineModal,
+  userRole = 'admin'
+}) => {
+  const standardSectors = [
+    {
+      id: 'sec-1',
+      name: 'Sector 1',
+      fullName: 'Sector 1 (Production & Manufacturing)',
+      headName: 'Sector Head - Sector 1',
+      categories: ['Machining', 'Stamping', 'Robotics']
+    },
+    {
+      id: 'sec-2',
+      name: 'Sector 2',
+      fullName: 'Sector 2 (Heavy Machining & Fabrication)',
+      headName: 'Sector Head - Sector 2',
+      categories: ['Machining', 'Fluid Systems', 'Thermal Systems']
+    },
+    {
+      id: 'sec-3',
+      name: 'Sector 3',
+      fullName: 'Sector 3 (Assembly & Packaging)',
+      headName: 'Sector Head - Sector 3',
+      categories: ['Material Handling', 'Robotics', 'Pneumatics']
+    },
+    {
+      id: 'sec-4',
+      name: 'Sector 4',
+      fullName: 'Sector 4 (Material Handling & Logistics)',
+      headName: 'Sector Head - Sector 4',
+      categories: ['Material Handling', 'Pneumatics', 'Electrical Distribution']
+    }
+  ];
+
+  // Dynamic sector aggregation from real asset records
+  const sectorsSummary = standardSectors.map((sec) => {
+    const secAssets = assets.filter(
+      (a) => a.sector === sec.name || a.sector === sec.fullName || (a.sector && a.sector.startsWith(sec.name))
+    );
+    const total = secAssets.length;
+    const healthy = secAssets.filter((a) => a.status === 'Operational').length;
+    const critical = secAssets.filter(
+      (a) => a.status === 'Critical' || a.status === 'Warning' || a.status === 'Maintenance Required'
+    ).length;
+    const healthIndex = total > 0 ? Math.round((healthy / total) * 100) : 100;
+
+    return {
+      ...sec,
+      totalMachines: total,
+      healthyMachines: healthy,
+      criticalMachines: critical,
+      healthIndex
+    };
+  });
+
   return (
     <div>
       {/* Header Info */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
           <h2 style={{ fontSize: '1.25rem', color: 'var(--text-main)' }}>Plant Industry Sectors Overview</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Authorized sector management across Production, Mechanical, and Electrical departments</p>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Authorized operational management across Sectors 1, 2, 3, and 4</p>
         </div>
-        <span className="badge badge-maintenance" style={{ fontSize: '0.8rem' }}>
-          Demo Data Mode • 3 Primary Sectors
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span className="badge badge-neutral" style={{ fontSize: '0.8rem', border: '1px solid var(--border-medium)' }}>
+            4 Operational Sectors
+          </span>
+          {userRole === 'admin' && onOpenAddMachineModal && (
+            <button className="btn btn-secondary btn-sm" onClick={onOpenAddMachineModal}>
+              <Plus size={16} /> + Add Machine
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Sector Summary Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-        {MOCK_SECTORS_SUMMARY.map((sec) => (
+        {sectorsSummary.map((sec) => (
           <Card
             key={sec.id}
             title={sec.name}

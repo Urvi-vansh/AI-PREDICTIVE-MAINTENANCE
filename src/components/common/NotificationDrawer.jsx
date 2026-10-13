@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertTriangle, BellCheck, Info, ShieldAlert, Check } from 'lucide-react';
 
-export const NotificationDrawer = ({ notifications, onMarkAllRead, onClose }) => {
+export const NotificationDrawer = ({ notifications, onMarkAllRead, onClose, onNavigateTab }) => {
   const getIcon = (type) => {
     switch (type) {
       case 'critical':
@@ -43,6 +43,19 @@ export const NotificationDrawer = ({ notifications, onMarkAllRead, onClose }) =>
             <div
               key={item.id}
               className={`notification-item ${!item.read ? 'unread' : ''}`}
+              style={{ cursor: onNavigateTab ? 'pointer' : 'default' }}
+              onClick={() => {
+                if (onNavigateTab) {
+                  const titleLower = item.title.toLowerCase();
+                  if (titleLower.includes('approval') || titleLower.includes('access request') || titleLower.includes('user') || titleLower.includes('personnel')) {
+                    onNavigateTab('users');
+                  } else if (titleLower.includes('alert') || titleLower.includes('failure')) {
+                    onNavigateTab('alerts');
+                  } else if (titleLower.includes('machine') || titleLower.includes('asset')) {
+                    onNavigateTab('assets');
+                  }
+                }
+              }}
             >
               <div className={`notification-icon ${item.type}`}>
                 {getIcon(item.type)}

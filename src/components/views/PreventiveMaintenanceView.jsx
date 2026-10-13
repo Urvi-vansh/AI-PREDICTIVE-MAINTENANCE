@@ -18,6 +18,7 @@ import { CompletePreventiveTaskModal } from '../modals/CompletePreventiveTaskMod
 
 export const PreventiveMaintenanceView = ({
   schedules = [],
+  assets = [],
   onCreateSchedule,
   onCompleteTask,
   userRole = 'admin'
@@ -286,6 +287,7 @@ export const PreventiveMaintenanceView = ({
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
           onSubmitSchedule={onCreateSchedule}
+          assets={assets}
         />
       )}
 

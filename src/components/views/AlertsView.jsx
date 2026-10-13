@@ -23,6 +23,7 @@ import { AlertDetailsModal } from '../modals/AlertDetailsModal';
 
 export const AlertsView = ({
   alerts = [],
+  assets = [],
   onResolveAlert,
   onCreateAlert,
   onUpdateAlertStatus,
@@ -72,7 +73,7 @@ export const AlertsView = ({
   const totalOpen = alerts.filter((a) => a.status !== 'Closed').length;
   const totalCritical = alerts.filter((a) => a.severity === 'Critical' && a.status !== 'Closed').length;
   const totalOverdue = alerts.filter(
-    (a) => a.status !== 'Closed' && a.deadline && new Date(a.deadline) < new Date('2026-10-10')
+    (a) => a.status !== 'Closed' && a.deadline && new Date(a.deadline) < new Date()
   ).length;
   const totalPendingVerification = alerts.filter((a) => a.status === 'Resolved').length;
 
@@ -94,7 +95,7 @@ export const AlertsView = ({
         </div>
 
         <button className="btn btn-primary btn-sm" onClick={() => setIsCreateModalOpen(true)}>
-          <PlusCircle size={16} /> + Create Demo Alert
+          <PlusCircle size={16} /> + Create Alert
         </button>
       </div>
 
@@ -252,7 +253,7 @@ export const AlertsView = ({
                   const isOverdue =
                     alt.status !== 'Closed' &&
                     alt.deadline &&
-                    new Date(alt.deadline) < new Date('2026-10-10');
+                    new Date(alt.deadline) < new Date();
 
                   return (
                     <tr
@@ -373,6 +374,7 @@ export const AlertsView = ({
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
           onSubmitAlert={onCreateAlert}
+          assets={assets}
         />
       )}
 

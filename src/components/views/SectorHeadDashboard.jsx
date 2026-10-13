@@ -6,6 +6,7 @@ import {
   ShieldAlert,
   Clock,
   CheckCircle2,
+  XCircle,
   Users,
   Wrench,
   Send,
@@ -17,6 +18,7 @@ import {
   UserCheck,
   Building2
 } from 'lucide-react';
+import { ROLES } from '../../config/permissions';
 import { ReviseDeadlineModal } from '../modals/ReviseDeadlineModal';
 import { VerifyIncidentModal } from '../modals/VerifyIncidentModal';
 
@@ -25,6 +27,9 @@ export const SectorHeadDashboard = ({
   assets,
   workOrders,
   alerts,
+  usersList = [],
+  onApproveUser,
+  onRejectUser,
   onUpdateWOStatus,
   onAssignTask,
   onSendReminder,
@@ -40,6 +45,20 @@ export const SectorHeadDashboard = ({
   const [assigningTaskId, setAssigningTaskId] = useState(null);
   const [assignedTechName, setAssignedTechName] = useState('');
 
+  // Pending technician approval requests routed to this department head
+  const isDeptHead = user.role === ROLES.MECHANICAL_HEAD || user.role === ROLES.ELECTRICAL_HEAD;
+  const pendingDepartmentTechs = usersList.filter((u) => {
+    const isPending = u.status === 'Pending Approval' || (!u.isApproved && u.role !== ROLES.ADMIN);
+    if (!isPending) return false;
+    if (user.role === ROLES.MECHANICAL_HEAD) {
+      return u.role === ROLES.MECHANICAL_TECH;
+    }
+    if (user.role === ROLES.ELECTRICAL_HEAD) {
+      return u.role === ROLES.ELECTRICAL_TECH;
+    }
+    return false;
+  });
+
   // Filter machines, work orders, alerts strictly for this sector
   const sectorAssets = assets.filter(a => a.sector === user.sector);
   const sectorWorkOrders = workOrders.filter(w => w.sector === user.sector);
@@ -47,8 +66,8 @@ export const SectorHeadDashboard = ({
 
   // Sector Metrics
   const openFailuresCount = sectorAlerts.filter(a => a.status === 'Open' || a.status === 'Investigating').length;
-  const overdueTasksCount = sectorWorkOrders.filter(w => new Date(w.dueDate) < new Date('2026-10-10') && w.status !== 'Completed').length;
-  const completedRepairsCount = sectorWorkOrders.filter(w => w.status === 'Completed').length + 12;
+  const overdueTasksCount = sectorWorkOrders.filter(w => new Date(w.dueDate) < new Date() && w.status !== 'Completed').length;
+  const completedRepairsCount = sectorWorkOrders.filter(w => w.status === 'Completed').length;
   const pendingVerificationCount = sectorWorkOrders.filter(w => w.status === 'Pending Verification').length;
 
   // Sector Team Technicians Workload
@@ -62,15 +81,139 @@ export const SectorHeadDashboard = ({
   return (
     <div>
       {/* Header Info */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.25rem', color: 'var(--text-main)' }}>{user.sector} Head Control Dashboard</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Authorized Sector Head: <strong>{user.name}</strong> • Sector Machine Fleet & Task Dispatch</p>
+          <h2 style={{ fontSize: '1.25rem', color: 'var(--text-main)', margin: 0 }}>{user.sector} Head Control Dashboard</h2>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+            Authorized Sector Head: <strong>{user.name}</strong> • Sector Machine Fleet & Task Dispatch
+          </p>
         </div>
-        <button className="btn btn-primary btn-sm" onClick={onOpenWorkOrderModal}>
-          + Dispatch Sector Task
-        </button>
+        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {isDeptHead && (
+            <button
+              className="btn btn-outline-blue btn-sm"
+              onClick={() => onNavigateTab && onNavigateTab('users')}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <Users size={16} /> Manage Department Team
+              {pendingDepartmentTechs.length > 0 && (
+                <span
+                  style={{
+                    backgroundColor: '#d97706',
+                    color: '#ffffff',
+                    borderRadius: '10px',
+                    padding: '0.1rem 0.45rem',
+                    fontSize: '0.7rem',
+                    fontWeight: 700
+                  }}
+                >
+                  {pendingDepartmentTechs.length} Pending
+                </span>
+              )}
+            </button>
+          )}
+          <button className="btn btn-primary btn-sm" onClick={onOpenWorkOrderModal}>
+            + Dispatch Sector Task
+          </button>
+        </div>
       </div>
+
+      {/* PENDING TECHNICIAN APPROVALS (For Mechanical & Electrical Heads) */}
+      {pendingDepartmentTechs.length > 0 && (
+        <Card
+          title={`Technician Access Requests Awaiting Your Approval (${pendingDepartmentTechs.length})`}
+          subtitle={`New operational ${user.sector} technicians requiring Department Head authorization`}
+          style={{
+            marginBottom: '1.75rem',
+            border: '2px solid rgba(217, 119, 6, 0.45)',
+            backgroundColor: 'var(--bg-secondary)'
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            {pendingDepartmentTechs.map((tech) => (
+              <div
+                key={tech.email}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '1rem 1.25rem',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid var(--border-light)',
+                  backgroundColor: 'var(--bg-primary)',
+                  flexWrap: 'wrap',
+                  gap: '1rem'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div
+                    className="user-avatar"
+                    style={{
+                      width: 44,
+                      height: 44,
+                      fontSize: '1rem',
+                      backgroundColor: 'rgba(217, 119, 6, 0.15)',
+                      color: '#d97706',
+                      border: '1px solid rgba(217, 119, 6, 0.3)'
+                    }}
+                  >
+                    {tech.avatar || tech.name?.substring(0, 2).toUpperCase() || 'TC'}
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <strong style={{ fontSize: '0.95rem', color: 'var(--text-main)' }}>{tech.name}</strong>
+                      <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>
+                        ● Awaiting Department Approval
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--primary-600)', fontWeight: 600, marginTop: '0.15rem' }}>
+                      Requested: {tech.title || tech.role} • {tech.sector}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                      Email: <code style={{ color: 'var(--text-main)' }}>{tech.email}</code>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                  <button
+                    className="btn btn-sm btn-success"
+                    style={{
+                      backgroundColor: '#16a34a',
+                      color: '#ffffff',
+                      border: 'none',
+                      fontWeight: 600,
+                      padding: '0.45rem 0.9rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem'
+                    }}
+                    onClick={() => onApproveUser && onApproveUser(tech.email)}
+                    title="Authorize technician access to department machinery"
+                  >
+                    <CheckCircle2 size={15} /> Approve Access
+                  </button>
+                  <button
+                    className="btn btn-sm btn-secondary"
+                    style={{
+                      borderColor: 'var(--status-danger-border)',
+                      color: 'var(--status-danger-text)',
+                      fontWeight: 600,
+                      padding: '0.45rem 0.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem'
+                    }}
+                    onClick={() => onRejectUser && onRejectUser(tech.email)}
+                  >
+                    <XCircle size={15} /> Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* 4 Sector KPI Cards */}
       <div className="kpi-grid" style={{ marginBottom: '1.75rem' }}>
@@ -210,7 +353,7 @@ export const SectorHeadDashboard = ({
                 </tr>
               ) : (
                 sectorWorkOrders.map((wo) => {
-                  const isOverdue = new Date(wo.dueDate) < new Date('2026-10-10') && wo.status !== 'Completed';
+                  const isOverdue = new Date(wo.dueDate) < new Date() && wo.status !== 'Completed';
                   return (
                     <tr key={wo.id}>
                       <td>

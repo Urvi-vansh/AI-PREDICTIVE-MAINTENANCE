@@ -17,6 +17,7 @@ import { RecordDowntimeModal } from '../forms/RecordDowntimeModal';
 
 export const DowntimeTrackingView = ({
   downtimeLogs = [],
+  assets = [],
   onRecordDowntime,
   user
 }) => {
@@ -317,6 +318,7 @@ export const DowntimeTrackingView = ({
           onClose={() => setIsRecordModalOpen(false)}
           onRecordDowntime={onRecordDowntime}
           user={user}
+          assets={assets}
         />
       )}
     </div>

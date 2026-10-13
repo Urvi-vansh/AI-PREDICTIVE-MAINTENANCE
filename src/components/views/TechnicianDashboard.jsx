@@ -73,7 +73,7 @@ export const TechnicianDashboard = ({
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.5rem' }}>
               {activeTasks.map((task) => {
-                const isOverdue = new Date(task.dueDate) < new Date('2026-10-10') && task.status !== 'Completed';
+                const isOverdue = new Date(task.dueDate) < new Date() && task.status !== 'Completed';
                 return (
                   <Card key={task.id} style={{ border: isOverdue ? '1px solid var(--status-danger-border)' : '1px solid var(--border-light)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>

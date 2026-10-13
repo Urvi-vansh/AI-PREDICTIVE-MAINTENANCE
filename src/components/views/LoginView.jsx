@@ -26,9 +26,8 @@ const OPERATIONAL_ROLES = [
     label: 'System administrator',
     title: 'System administrator',
     sector: 'All Plant Sectors',
-    email: 'admin@industrialcare.io',
     icon: ShieldCheck,
-    avatar: 'AV'
+    avatar: 'SA'
   },
   {
     key: 'sector_head_1',
@@ -36,7 +35,6 @@ const OPERATIONAL_ROLES = [
     label: 'Sector head - Sector 1',
     title: 'Sector head - Sector 1',
     sector: 'Sector 1 (Production & Manufacturing)',
-    email: 'sector1.head@industrialcare.io',
     icon: Factory,
     avatar: 'S1'
   },
@@ -46,7 +44,6 @@ const OPERATIONAL_ROLES = [
     label: 'Sector head - Sector 2',
     title: 'Sector head - Sector 2',
     sector: 'Sector 2 (Heavy Machining & Fabrication)',
-    email: 'sector2.head@industrialcare.io',
     icon: Factory,
     avatar: 'S2'
   },
@@ -56,7 +53,6 @@ const OPERATIONAL_ROLES = [
     label: 'Sector head - Sector 3',
     title: 'Sector head - Sector 3',
     sector: 'Sector 3 (Assembly & Packaging)',
-    email: 'sector3.head@industrialcare.io',
     icon: Factory,
     avatar: 'S3'
   },
@@ -66,7 +62,6 @@ const OPERATIONAL_ROLES = [
     label: 'Sector head - Sector 4',
     title: 'Sector head - Sector 4',
     sector: 'Sector 4 (Material Handling & Logistics)',
-    email: 'sector4.head@industrialcare.io',
     icon: Factory,
     avatar: 'S4'
   },
@@ -76,7 +71,6 @@ const OPERATIONAL_ROLES = [
     label: 'Mechanical head',
     title: 'Mechanical head',
     sector: 'Mechanical Department',
-    email: 'mech.head@industrialcare.io',
     icon: Wrench,
     avatar: 'MH'
   },
@@ -86,7 +80,6 @@ const OPERATIONAL_ROLES = [
     label: 'Electrical head',
     title: 'Electrical head',
     sector: 'Electrical Department',
-    email: 'elec.head@industrialcare.io',
     icon: Zap,
     avatar: 'EH'
   },
@@ -96,7 +89,6 @@ const OPERATIONAL_ROLES = [
     label: 'Mechanical technician',
     title: 'Mechanical technician',
     sector: 'Mechanical Department',
-    email: 'mech.tech@industrialcare.io',
     icon: Wrench,
     avatar: 'MT'
   },
@@ -106,7 +98,6 @@ const OPERATIONAL_ROLES = [
     label: 'Electrical technician',
     title: 'Electrical technician',
     sector: 'Electrical Department',
-    email: 'elec.tech@industrialcare.io',
     icon: Cpu,
     avatar: 'ET'
   }
@@ -119,9 +110,9 @@ export const LoginView = ({ onLogin, onRegisterUser }) => {
   // Selected Role Dropdown State (key from OPERATIONAL_ROLES)
   const [selectedRoleKey, setSelectedRoleKey] = useState('system_admin');
 
-  // Sign In Form Inputs
-  const [email, setEmail] = useState('admin@industrialcare.io');
-  const [password, setPassword] = useState('••••••••••••');
+  // Sign In Form Inputs - clean and empty for manual entry
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
@@ -143,15 +134,8 @@ export const LoginView = ({ onLogin, onRegisterUser }) => {
 
   // Handle Role Dropdown Change
   const handleRoleChange = (e) => {
-    const newKey = e.target.value;
-    setSelectedRoleKey(newKey);
+    setSelectedRoleKey(e.target.value);
     setValidationError('');
-
-    const targetRole = OPERATIONAL_ROLES.find(r => r.key === newKey);
-    if (targetRole) {
-      setEmail(targetRole.email);
-      setPassword('••••••••••••');
-    }
   };
 
   // Handle Sign In Submit
@@ -170,16 +154,20 @@ export const LoginView = ({ onLogin, onRegisterUser }) => {
 
     setIsLoading(true);
 
+    const emailPrefix = email.split('@')[0];
+    const userDisplayName = emailPrefix ? emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1) : currentRole.title;
+    const avatarLetters = userDisplayName.substring(0, 2).toUpperCase();
+
     setTimeout(() => {
       setIsLoading(false);
       onLogin({
         role: currentRole.role,
-        name: currentRole.title,
+        name: userDisplayName,
         title: currentRole.title,
         sector: currentRole.sector,
         email: email.trim(),
-        avatar: currentRole.avatar,
-        employeeId: `EMP-${currentRole.key.toUpperCase()}`
+        avatar: avatarLetters,
+        employeeId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`
       });
     }, 350);
   };
@@ -219,6 +207,7 @@ export const LoginView = ({ onLogin, onRegisterUser }) => {
     const nameParts = fullName.trim().split(' ');
     const initials = (nameParts[0][0] + (nameParts[1] ? nameParts[1][0] : nameParts[0][1] || '')).toUpperCase();
 
+    const isApprovalNeeded = currentRole.role !== ROLES.ADMIN;
     const newUserAccount = {
       role: currentRole.role,
       name: fullName.trim(),
@@ -228,7 +217,10 @@ export const LoginView = ({ onLogin, onRegisterUser }) => {
       avatar: initials,
       employeeId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
       description: `Registered as ${currentRole.title} (${currentRole.sector}).`,
-      isNewUser: true
+      isNewUser: true,
+      status: isApprovalNeeded ? 'Pending Approval' : 'Active',
+      isApproved: !isApprovalNeeded,
+      requestedAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
     };
 
     setTimeout(() => {
