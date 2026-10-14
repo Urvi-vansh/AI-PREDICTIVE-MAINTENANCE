@@ -1,9 +1,10 @@
 import React from 'react';
 
-export const Badge = ({ status = 'Operational', children, size = 'normal' }) => {
+export const Badge = ({ status = 'Offline', children, size = 'normal' }) => {
   const getBadgeClass = (statusStr) => {
-    const s = statusStr.toLowerCase();
-    if (s.includes('operational') || s.includes('normal') || s.includes('completed') || s.includes('healthy')) {
+    if (!statusStr) return 'badge-offline';
+    const s = String(statusStr).toLowerCase();
+    if (s.includes('operational') || s.includes('normal') || s.includes('completed') || s.includes('healthy') || s === 'low' || s.startsWith('low')) {
       return 'badge-operational';
     }
     if (s.includes('warning') || s.includes('medium') || s.includes('pending')) {

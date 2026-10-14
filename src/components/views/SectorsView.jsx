@@ -121,13 +121,14 @@ export const SectorsView = ({
   const sectorsData = standardSectors.map((sec) => {
     const secAssets = getSectorAssets(sec);
     const total = secAssets.length;
-    const operational = secAssets.filter((a) => a.status === 'Operational').length;
+    const operational = secAssets.filter((a) => a.status === 'Operational' || a.status === 'Low').length;
     const warning = secAssets.filter(
-      (a) => a.status === 'Warning' || a.status === 'Maintenance Required'
+      (a) => a.status === 'Warning' || a.status === 'Medium' || a.status === 'Maintenance Required'
     ).length;
-    const critical = secAssets.filter((a) => a.status === 'Critical').length;
-    const offline = secAssets.filter((a) => a.status === 'Offline').length;
-    const healthIndex = total > 0 ? Math.round((operational / total) * 100) : 100;
+    const critical = secAssets.filter((a) => a.status === 'Critical' || a.status === 'High').length;
+    const offline = secAssets.filter((a) => a.status === 'Offline' || !a.status).length;
+    const activeCount = operational + warning + critical;
+    const healthIndex = activeCount > 0 ? Math.round(((operational + warning * 0.7) / activeCount) * 100) : null;
 
     return {
       ...sec,
@@ -143,12 +144,12 @@ export const SectorsView = ({
 
   // Overall plant totals (shared data model)
   const totalFleetCount = assets.length;
-  const totalOperational = assets.filter((a) => a.status === 'Operational').length;
+  const totalOperational = assets.filter((a) => a.status === 'Operational' || a.status === 'Low').length;
   const totalWarning = assets.filter(
-    (a) => a.status === 'Warning' || a.status === 'Maintenance Required'
+    (a) => a.status === 'Warning' || a.status === 'Medium' || a.status === 'Maintenance Required'
   ).length;
-  const totalCritical = assets.filter((a) => a.status === 'Critical').length;
-  const totalOffline = assets.filter((a) => a.status === 'Offline').length;
+  const totalCritical = assets.filter((a) => a.status === 'Critical' || a.status === 'High').length;
+  const totalOffline = assets.filter((a) => a.status === 'Offline' || !a.status).length;
 
   // Active sector drill-down data
   const currentSector = sectorsData.find(
@@ -166,7 +167,13 @@ export const SectorsView = ({
         const matchesStatus =
           statusFilter === 'All' ||
           m.status === statusFilter ||
-          (statusFilter === 'Warning' && m.status === 'Maintenance Required');
+          (statusFilter === 'Operational' && (m.status === 'Operational' || m.status === 'Low')) ||
+          (statusFilter === 'Low' && (m.status === 'Operational' || m.status === 'Low')) ||
+          (statusFilter === 'Warning' && (m.status === 'Warning' || m.status === 'Medium' || m.status === 'Maintenance Required')) ||
+          (statusFilter === 'Medium' && (m.status === 'Warning' || m.status === 'Medium' || m.status === 'Maintenance Required')) ||
+          (statusFilter === 'Critical' && (m.status === 'Critical' || m.status === 'High')) ||
+          (statusFilter === 'High' && (m.status === 'Critical' || m.status === 'High')) ||
+          (statusFilter === 'Offline' && (m.status === 'Offline' || !m.status));
         return matchesSearch && matchesStatus;
       })
     : [];
@@ -198,11 +205,14 @@ export const SectorsView = ({
   const getStatusBorderColor = (status) => {
     switch (status) {
       case 'Operational':
+      case 'Low':
         return 'var(--status-success-text)';
       case 'Warning':
+      case 'Medium':
       case 'Maintenance Required':
         return 'var(--status-warning-text)';
       case 'Critical':
+      case 'High':
         return 'var(--status-danger-text)';
       case 'Offline':
       default:
@@ -655,16 +665,16 @@ export const SectorsView = ({
                       <span style={{ fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                         <Activity size={14} style={{ color: 'var(--primary-600)' }} /> Health Index
                       </span>
-                      <span style={{ fontWeight: 700, color: sec.healthIndex >= 85 ? 'var(--status-success-text)' : sec.healthIndex >= 70 ? 'var(--status-warning-dark)' : 'var(--status-danger-text)' }}>
-                        {sec.healthIndex}%
+                      <span style={{ fontWeight: 700, color: sec.healthIndex === null ? 'var(--status-offline-text)' : sec.healthIndex >= 85 ? 'var(--status-success-text)' : sec.healthIndex >= 70 ? 'var(--status-warning-dark)' : 'var(--status-danger-text)' }}>
+                        {sec.healthIndex === null ? 'Offline' : `${sec.healthIndex}%`}
                       </span>
                     </div>
                     <div style={{ width: '100%', height: 7, backgroundColor: 'var(--border-light)', borderRadius: 4, overflow: 'hidden' }}>
                       <div
                         style={{
-                          width: `${sec.healthIndex}%`,
+                          width: sec.healthIndex === null ? '0%' : `${sec.healthIndex}%`,
                           height: '100%',
-                          backgroundColor: sec.healthIndex >= 85 ? '#16a34a' : sec.healthIndex >= 70 ? '#eab308' : '#dc2626',
+                          backgroundColor: sec.healthIndex === null ? 'var(--status-offline-text)' : sec.healthIndex >= 85 ? '#16a34a' : sec.healthIndex >= 70 ? '#eab308' : '#dc2626',
                           transition: 'width 400ms ease'
                         }}
                       />

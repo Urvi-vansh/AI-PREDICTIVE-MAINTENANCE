@@ -83,11 +83,12 @@ export const ReportsView = ({
 
   // 1. Machine Status Summaries
   const totalMachines = filteredAssets.length;
-  const totalOperational = filteredAssets.filter((a) => a.status === 'Operational').length;
-  const totalWarning = filteredAssets.filter((a) => a.status === 'Warning' || a.status === 'Maintenance Required').length;
-  const totalCritical = filteredAssets.filter((a) => a.status === 'Critical').length;
-  const totalOffline = filteredAssets.filter((a) => a.status === 'Offline').length;
-  const overallHealthIndex = totalMachines > 0 ? Math.round((totalOperational / totalMachines) * 100) : 100;
+  const totalOperational = filteredAssets.filter((a) => a.status === 'Operational' || a.status === 'Low').length;
+  const totalWarning = filteredAssets.filter((a) => a.status === 'Warning' || a.status === 'Medium' || a.status === 'Maintenance Required').length;
+  const totalCritical = filteredAssets.filter((a) => a.status === 'Critical' || a.status === 'High').length;
+  const totalOffline = filteredAssets.filter((a) => a.status === 'Offline' || !a.status).length;
+  const activeFleet = totalMachines - totalOffline;
+  const overallHealthIndex = activeFleet > 0 ? Math.round((totalOperational / activeFleet) * 100) : null;
 
   // Sector breakdown report
   const sectorReport = standardSectors.map((sec) => {
@@ -95,11 +96,12 @@ export const ReportsView = ({
       (a) => a.sector === sec.title || (a.sector && a.sector.startsWith(sec.name))
     );
     const total = secAssets.length;
-    const operational = secAssets.filter((a) => a.status === 'Operational').length;
-    const warning = secAssets.filter((a) => a.status === 'Warning' || a.status === 'Maintenance Required').length;
-    const critical = secAssets.filter((a) => a.status === 'Critical').length;
-    const offline = secAssets.filter((a) => a.status === 'Offline').length;
-    const healthIndex = total > 0 ? Math.round((operational / total) * 100) : 100;
+    const operational = secAssets.filter((a) => a.status === 'Operational' || a.status === 'Low').length;
+    const warning = secAssets.filter((a) => a.status === 'Warning' || a.status === 'Medium' || a.status === 'Maintenance Required').length;
+    const critical = secAssets.filter((a) => a.status === 'Critical' || a.status === 'High').length;
+    const offline = secAssets.filter((a) => a.status === 'Offline' || !a.status).length;
+    const active = total - offline;
+    const healthIndex = active > 0 ? Math.round((operational / active) * 100) : null;
 
     return {
       name: sec.name,
@@ -397,13 +399,13 @@ export const ReportsView = ({
             <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '1rem 1.25rem' }}>
               <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Total Plant Machinery</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.2rem' }}>{totalMachines}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Overall Health: <strong>{overallHealthIndex}%</strong></div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Overall Health: <strong>{overallHealthIndex === null ? 'Offline' : `${overallHealthIndex}%`}</strong></div>
             </div>
 
             <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '1rem 1.25rem' }}>
               <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--status-success-text)' }}>Operational Status</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--status-success-text)', marginTop: '0.2rem' }}>{totalOperational}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{Math.round((totalOperational / (totalMachines || 1)) * 100)}% of active plant fleet</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{activeFleet > 0 ? `${Math.round((totalOperational / activeFleet) * 100)}% of active plant fleet` : 'Fleet currently Offline'}</div>
             </div>
 
             <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '1rem 1.25rem' }}>
@@ -470,13 +472,15 @@ export const ReportsView = ({
                           <div style={{ width: 80, height: 6, backgroundColor: 'var(--bg-secondary)', borderRadius: 3, overflow: 'hidden' }}>
                             <div
                               style={{
-                                width: `${sec.healthIndex}%`,
+                                width: sec.healthIndex === null ? '0%' : `${sec.healthIndex}%`,
                                 height: '100%',
-                                backgroundColor: sec.healthIndex >= 80 ? '#16a34a' : sec.healthIndex >= 60 ? '#ca8a04' : '#dc2626'
+                                backgroundColor: sec.healthIndex === null ? 'var(--status-offline-text)' : sec.healthIndex >= 80 ? '#16a34a' : sec.healthIndex >= 60 ? '#ca8a04' : '#dc2626'
                               }}
                             />
                           </div>
-                          <strong style={{ fontSize: '0.825rem' }}>{sec.healthIndex}%</strong>
+                          <strong style={{ fontSize: '0.825rem', color: sec.healthIndex === null ? 'var(--status-offline-text)' : undefined }}>
+                            {sec.healthIndex === null ? 'Offline' : `${sec.healthIndex}%`}
+                          </strong>
                         </div>
                       </td>
                     </tr>

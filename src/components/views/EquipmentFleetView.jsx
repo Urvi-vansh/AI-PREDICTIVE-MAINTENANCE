@@ -40,7 +40,7 @@ export const EquipmentFleetView = ({
   const machineTypes = ['All', ...new Set(assets.map((a) => a.type || a.category).filter(Boolean))];
   const departments = ['All', ...new Set(assets.map((a) => a.department).filter(Boolean))];
   const sectors = ['All', 'Sector 1', 'Sector 2', 'Sector 3', 'Sector 4', 'Mechanical Department', 'Electrical Department'];
-  const statuses = ['All', 'Operational', 'Warning', 'Critical', 'Offline'];
+  const statuses = ['All', 'Low', 'Medium', 'High', 'Offline'];
 
   const filteredAssets = assets.filter((asset) => {
     const matchesSearch =
@@ -55,7 +55,16 @@ export const EquipmentFleetView = ({
       (sectorFilter && asset.sector && sectorFilter.startsWith(asset.sector));
     const matchesType = typeFilter === 'All' || (asset.type || asset.category) === typeFilter;
     const matchesDept = deptFilter === 'All' || asset.department === deptFilter;
-    const matchesStatus = statusFilter === 'All' || asset.status === statusFilter;
+    const matchesStatus =
+      statusFilter === 'All' ||
+      asset.status === statusFilter ||
+      (statusFilter === 'Low' && (asset.status === 'Low' || asset.status === 'Operational')) ||
+      (statusFilter === 'Medium' && (asset.status === 'Medium' || asset.status === 'Warning' || asset.status === 'Maintenance Required')) ||
+      (statusFilter === 'High' && (asset.status === 'High' || asset.status === 'Critical')) ||
+      (statusFilter === 'Operational' && (asset.status === 'Low' || asset.status === 'Operational')) ||
+      (statusFilter === 'Warning' && (asset.status === 'Medium' || asset.status === 'Warning' || asset.status === 'Maintenance Required')) ||
+      (statusFilter === 'Critical' && (asset.status === 'High' || asset.status === 'Critical')) ||
+      (statusFilter === 'Offline' && (asset.status === 'Offline' || !asset.status));
 
     return matchesSearch && matchesSector && matchesType && matchesDept && matchesStatus;
   });
@@ -273,13 +282,15 @@ export const EquipmentFleetView = ({
                             <div style={{ flex: 1, width: '50px', height: '6px', backgroundColor: 'var(--border-light)', borderRadius: '3px', overflow: 'hidden' }}>
                               <div
                                 style={{
-                                  width: `${asset.healthScore}%`,
+                                  width: asset.status === 'Offline' ? '0%' : `${asset.healthScore}%`,
                                   height: '100%',
-                                  backgroundColor: asset.healthScore > 80 ? '#16a34a' : asset.healthScore > 60 ? '#eab308' : '#dc2626'
+                                  backgroundColor: asset.status === 'Offline' ? 'var(--status-offline-text)' : asset.healthScore > 80 ? '#16a34a' : asset.healthScore > 60 ? '#eab308' : '#dc2626'
                                 }}
                               />
                             </div>
-                            <span style={{ fontWeight: 600, fontSize: '0.775rem' }}>{asset.healthScore}%</span>
+                            <span style={{ fontWeight: 600, fontSize: '0.775rem', color: asset.status === 'Offline' ? 'var(--text-muted)' : undefined }}>
+                              {asset.status === 'Offline' ? '--' : `${asset.healthScore}%`}
+                            </span>
                           </div>
                         </td>
                         <td>

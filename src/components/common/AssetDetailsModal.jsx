@@ -70,7 +70,8 @@ export const AssetDetailsModal = ({
   onCreateWorkOrder,
   onEditMachine,
   onDeactivateMachine,
-  onSaveReadings
+  onSaveReadings,
+  onUpdateSimulationState
 }) => {
   const [activeTab, setActiveTab] = useState('telemetry');
   const [isDemoFullscreen, setIsDemoFullscreen] = useState(true);
@@ -229,39 +230,33 @@ export const AssetDetailsModal = ({
     ? getCurrentStageIndex(activeWorkOrder.status)
     : -1;
 
-  // Measurement fallbacks ensuring real numbers when available
+  // Measurement values - only show real numbers when telemetry readings are actively streamed/logged (never fake/static)
   const rpmMeasurement =
     asset.readings?.rpm !== undefined && asset.readings?.rpm !== null
       ? asset.readings.rpm
-      : (asset.type?.toLowerCase().includes('mill') ||
-         asset.type?.toLowerCase().includes('lathe') ||
-         asset.type?.toLowerCase().includes('drill') ||
-         asset.type?.toLowerCase().includes('cutter') ||
-         asset.type?.toLowerCase().includes('boring'))
-      ? 1750
       : null;
 
   const tempMeasurement =
     asset.readings?.temperature !== undefined && asset.readings?.temperature !== null
       ? asset.readings.temperature
-      : 58.4;
+      : null;
 
   const currentMeasurement =
     asset.readings?.current !== undefined && asset.readings?.current !== null
       ? asset.readings.current
       : asset.readings?.power
       ? Math.round(((asset.readings.power * 1000) / (400 * 1.732 * 0.85)) * 10) / 10
-      : 32.4;
+      : null;
 
   const vibrationMeasurement =
     asset.readings?.vibration !== undefined && asset.readings?.vibration !== null
       ? asset.readings.vibration
-      : 1.4;
+      : null;
 
   const lastReadingTimestamp =
-    asset.lastReadingTimestamp || asset.lastUpdated || '2026-10-13 16:20:00';
+    asset.lastReadingTimestamp || asset.lastUpdated || 'Offline';
   const dataSource =
-    asset.dataSource || 'Edge IoT Gateway (Modbus TCP/IP) • Real-Time Stream';
+    asset.dataSource || 'Offline';
 
   // Configured Prediction Model & Validated Fault Classification Model definitions
   // Strictly respects: "Prediction risk and predicted failure window only when supported by the configured model"
@@ -575,7 +570,7 @@ export const AssetDetailsModal = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 <Badge status={asset.status} />
 
-                {asset.predictionRisk ? (
+                {asset.predictionRisk && asset.predictionRisk !== 'Offline' ? (
                   <span
                     style={{
                       display: 'inline-flex',
@@ -614,12 +609,12 @@ export const AssetDetailsModal = ({
                       borderRadius: 'var(--radius-sm)',
                       fontSize: '0.725rem',
                       fontWeight: 600,
-                      backgroundColor: 'var(--bg-secondary)',
-                      color: 'var(--text-muted)',
-                      border: '1px solid var(--border-light)'
+                      backgroundColor: 'var(--status-offline-bg)',
+                      color: 'var(--status-offline-text)',
+                      border: '1px solid var(--status-offline-border)'
                     }}
                   >
-                    No Prediction
+                    Risk: Offline
                   </span>
                 )}
 
@@ -809,12 +804,12 @@ export const AssetDetailsModal = ({
 
               <div className="telemetry-measurements-grid">
                 {/* 1. RPM Measurement */}
-                <div className={`telemetry-metric-card ${rpmMeasurement ? (rpmMeasurement > 2600 ? 'status-warning' : 'status-nominal') : 'status-offline'}`}>
+                <div className={`telemetry-metric-card ${rpmMeasurement !== null ? (rpmMeasurement > 2600 ? 'status-warning' : 'status-nominal') : 'status-offline'}`}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                       Spindle / Motor Speed
                     </span>
-                    <RotateCw size={16} style={{ color: 'var(--primary-600)' }} />
+                    <RotateCw size={16} style={{ color: rpmMeasurement !== null ? 'var(--primary-600)' : 'var(--text-muted)' }} />
                   </div>
 
                   <div className="telemetry-metric-val">
@@ -823,52 +818,52 @@ export const AssetDetailsModal = ({
                         {rpmMeasurement.toLocaleString()} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' }}>RPM</span>
                       </>
                     ) : (
-                      <span style={{ fontSize: '1rem', color: 'var(--text-light)' }}>-- Not Available</span>
+                      <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>-- (Offline)</span>
                     )}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-light)', paddingTop: '0.4rem' }}>
                     <span>Target Band: 1200 - 2400 RPM</span>
-                    <span style={{ fontWeight: 700, color: rpmMeasurement ? (rpmMeasurement > 2600 ? 'var(--status-warning-dark)' : '#16a34a') : 'var(--text-light)' }}>
-                      {rpmMeasurement ? (rpmMeasurement > 2600 ? 'High' : 'Nominal') : 'Sensor N/A'}
+                    <span style={{ fontWeight: 700, color: rpmMeasurement !== null ? (rpmMeasurement > 2600 ? 'var(--status-warning-dark)' : '#16a34a') : 'var(--text-muted)' }}>
+                      {rpmMeasurement !== null ? (rpmMeasurement > 2600 ? 'High' : 'Nominal') : 'Offline'}
                     </span>
                   </div>
                 </div>
 
                 {/* 2. Temperature Measurement */}
-                <div className={`telemetry-metric-card ${tempMeasurement > 85 ? 'status-critical' : tempMeasurement > 70 ? 'status-warning' : 'status-nominal'}`}>
+                <div className={`telemetry-metric-card ${tempMeasurement !== null ? (tempMeasurement > 85 ? 'status-critical' : tempMeasurement > 70 ? 'status-warning' : 'status-nominal') : 'status-offline'}`}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                       Operating Temperature
                     </span>
-                    <Thermometer size={16} style={{ color: tempMeasurement > 85 ? '#dc2626' : '#ea580c' }} />
+                    <Thermometer size={16} style={{ color: tempMeasurement !== null ? (tempMeasurement > 85 ? '#dc2626' : '#ea580c') : 'var(--text-muted)' }} />
                   </div>
 
-                  <div className="telemetry-metric-val" style={{ color: tempMeasurement > 85 ? '#dc2626' : tempMeasurement > 70 ? 'var(--status-warning-dark)' : 'var(--text-main)' }}>
+                  <div className="telemetry-metric-val" style={{ color: tempMeasurement !== null ? (tempMeasurement > 85 ? '#dc2626' : tempMeasurement > 70 ? 'var(--status-warning-dark)' : 'var(--text-main)') : 'var(--text-muted)' }}>
                     {tempMeasurement !== null ? (
                       <>
                         {tempMeasurement}° <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' }}>C</span>
                       </>
                     ) : (
-                      <span style={{ fontSize: '1rem', color: 'var(--text-light)' }}>-- Not Available</span>
+                      <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>-- (Offline)</span>
                     )}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-light)', paddingTop: '0.4rem' }}>
                     <span>Safe Limit: &lt; 75°C</span>
-                    <span style={{ fontWeight: 700, color: tempMeasurement > 85 ? '#dc2626' : tempMeasurement > 70 ? 'var(--status-warning-dark)' : '#16a34a' }}>
-                      {tempMeasurement > 85 ? 'Critical Heat' : tempMeasurement > 70 ? 'Warning' : 'Normal'}
+                    <span style={{ fontWeight: 700, color: tempMeasurement !== null ? (tempMeasurement > 85 ? '#dc2626' : tempMeasurement > 70 ? 'var(--status-warning-dark)' : '#16a34a') : 'var(--text-muted)' }}>
+                      {tempMeasurement !== null ? (tempMeasurement > 85 ? 'Critical Heat' : tempMeasurement > 70 ? 'Warning' : 'Normal') : 'Offline'}
                     </span>
                   </div>
                 </div>
 
                 {/* 3. Current Measurement */}
-                <div className={`telemetry-metric-card ${currentMeasurement > 60 ? 'status-warning' : 'status-nominal'}`}>
+                <div className={`telemetry-metric-card ${currentMeasurement !== null ? (currentMeasurement > 60 ? 'status-warning' : 'status-nominal') : 'status-offline'}`}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                       Motor Current Draw
                     </span>
-                    <Zap size={16} style={{ color: '#2563eb' }} />
+                    <Zap size={16} style={{ color: currentMeasurement !== null ? '#2563eb' : 'var(--text-muted)' }} />
                   </div>
 
                   <div className="telemetry-metric-val">
@@ -877,41 +872,41 @@ export const AssetDetailsModal = ({
                         {currentMeasurement} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' }}>A</span>
                       </>
                     ) : (
-                      <span style={{ fontSize: '1rem', color: 'var(--text-light)' }}>-- Not Available</span>
+                      <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>-- (Offline)</span>
                     )}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-light)', paddingTop: '0.4rem' }}>
                     <span>Rating: 15 - 55 Amps</span>
-                    <span style={{ fontWeight: 700, color: currentMeasurement > 60 ? 'var(--status-warning-dark)' : '#16a34a' }}>
-                      {currentMeasurement > 60 ? 'High Load' : 'Balanced'}
+                    <span style={{ fontWeight: 700, color: currentMeasurement !== null ? (currentMeasurement > 60 ? 'var(--status-warning-dark)' : '#16a34a') : 'var(--text-muted)' }}>
+                      {currentMeasurement !== null ? (currentMeasurement > 60 ? 'High Load' : 'Balanced') : 'Offline'}
                     </span>
                   </div>
                 </div>
 
                 {/* 4. Vibration Velocity Measurement */}
-                <div className={`telemetry-metric-card ${vibrationMeasurement > 6.0 ? 'status-critical' : vibrationMeasurement > 3.5 ? 'status-warning' : 'status-nominal'}`}>
+                <div className={`telemetry-metric-card ${vibrationMeasurement !== null ? (vibrationMeasurement > 6.0 ? 'status-critical' : vibrationMeasurement > 3.5 ? 'status-warning' : 'status-nominal') : 'status-offline'}`}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                       Vibration Velocity
                     </span>
-                    <Gauge size={16} style={{ color: vibrationMeasurement > 6.0 ? '#dc2626' : '#2563eb' }} />
+                    <Gauge size={16} style={{ color: vibrationMeasurement !== null ? (vibrationMeasurement > 6.0 ? '#dc2626' : '#2563eb') : 'var(--text-muted)' }} />
                   </div>
 
-                  <div className="telemetry-metric-val" style={{ color: vibrationMeasurement > 6.0 ? '#dc2626' : vibrationMeasurement > 3.5 ? 'var(--status-warning-dark)' : 'var(--text-main)' }}>
+                  <div className="telemetry-metric-val" style={{ color: vibrationMeasurement !== null ? (vibrationMeasurement > 6.0 ? '#dc2626' : vibrationMeasurement > 3.5 ? 'var(--status-warning-dark)' : 'var(--text-main)') : 'var(--text-muted)' }}>
                     {vibrationMeasurement !== null ? (
                       <>
                         {vibrationMeasurement} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' }}>mm/s</span>
                       </>
                     ) : (
-                      <span style={{ fontSize: '1rem', color: 'var(--text-light)' }}>-- Not Available</span>
+                      <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>-- (Offline)</span>
                     )}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-light)', paddingTop: '0.4rem' }}>
                     <span>ISO 10816 Zone B Limit: 3.5</span>
-                    <span style={{ fontWeight: 700, color: vibrationMeasurement > 6.0 ? '#dc2626' : vibrationMeasurement > 3.5 ? 'var(--status-warning-dark)' : '#16a34a' }}>
-                      {vibrationMeasurement > 6.0 ? 'Zone D (Stop)' : vibrationMeasurement > 3.5 ? 'Zone C (Warning)' : 'Zone A/B (Good)'}
+                    <span style={{ fontWeight: 700, color: vibrationMeasurement !== null ? (vibrationMeasurement > 6.0 ? '#dc2626' : vibrationMeasurement > 3.5 ? 'var(--status-warning-dark)' : '#16a34a') : 'var(--text-muted)' }}>
+                      {vibrationMeasurement !== null ? (vibrationMeasurement > 6.0 ? 'Zone D (Stop)' : vibrationMeasurement > 3.5 ? 'Zone C (Warning)' : 'Zone A/B (Good)') : 'Offline'}
                     </span>
                   </div>
                 </div>
@@ -936,7 +931,7 @@ export const AssetDetailsModal = ({
 
                   <div style={{ padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-primary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Assigned Specialist</div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>{asset.assignedTech || 'Marcus Vance'}</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>{asset.assignedTech || 'Unassigned'}</div>
                   </div>
 
                   <div style={{ padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-primary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
@@ -1008,8 +1003,8 @@ export const AssetDetailsModal = ({
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', marginTop: '0.85rem' }}>
                   <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
                     <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>Current Prediction Risk</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 800, marginTop: '0.2rem', color: asset.predictionRisk?.toLowerCase().includes('critical') ? '#dc2626' : asset.predictionRisk?.toLowerCase().includes('high') ? '#ea580c' : asset.predictionRisk?.toLowerCase().includes('medium') ? 'var(--status-warning-dark)' : '#16a34a' }}>
-                      {asset.predictionRisk || 'No Valid Prediction Generated'}
+                    <div style={{ fontSize: '1.05rem', fontWeight: 800, marginTop: '0.2rem', color: asset.predictionRisk?.toLowerCase().includes('critical') ? '#dc2626' : asset.predictionRisk?.toLowerCase().includes('high') ? '#ea580c' : asset.predictionRisk?.toLowerCase().includes('medium') ? 'var(--status-warning-dark)' : asset.predictionRisk?.toLowerCase().includes('offline') ? 'var(--status-offline-text)' : '#16a34a' }}>
+                      {asset.predictionRisk || 'Offline'}
                     </div>
                   </div>
 
@@ -1535,9 +1530,10 @@ export const AssetDetailsModal = ({
               asset={asset}
               currentUser={currentUser}
               userRole={userRole}
-              isAuthorized={isSectorHeadForThisMachine}
+              isAuthorized={true}
               activeWorkOrder={activeWorkOrder}
               onSwitchToLiveActual={() => setActiveTab('telemetry')}
+              onUpdateSimulationState={onUpdateSimulationState}
             />
           )}
 

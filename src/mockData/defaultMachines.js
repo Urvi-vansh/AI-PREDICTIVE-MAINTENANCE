@@ -6,7 +6,7 @@
    - Sector 4: SEC4M1 through SEC4M10
 */
 
-export const DEFAULT_SECTOR_MACHINES = [
+const RAW_DEFAULT_SECTOR_MACHINES = [
   // ==========================================
   // SECTOR 1: Production & Manufacturing (10 Machines)
   // ==========================================
@@ -1271,3 +1271,16 @@ export const DEFAULT_SECTOR_MACHINES = [
     }
   }
 ];
+
+// All machines initially start in 'Offline' state with NO static or fake readings
+// Equipment becomes active only when live telemetry demonstration is started.
+export const DEFAULT_SECTOR_MACHINES = RAW_DEFAULT_SECTOR_MACHINES.map((machine) => ({
+  ...machine,
+  status: 'Offline',
+  predictionRisk: 'Offline',
+  healthScore: 0,
+  readings: null,
+  lastReadingTimestamp: 'Offline',
+  dataSource: 'Offline',
+  predictedFailureWindow: 'Awaiting Demonstration'
+}));

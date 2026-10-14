@@ -119,14 +119,22 @@ export default function App() {
   };
 
   const getInitialAssets = () => {
+    // Purge obsolete local storage caches that contained static/fake operational telemetry
     try {
-      const saved = localStorage.getItem('industrialcare_assets');
+      localStorage.removeItem('industrialcare_assets');
+      localStorage.removeItem('industrialcare_assets_v2');
+      localStorage.removeItem('industrialcare_assets_v3');
+      localStorage.removeItem('industrialcare_assets_v4');
+    } catch {}
+
+    try {
+      const saved = localStorage.getItem('industrialcare_assets_v5');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (
           Array.isArray(parsed) &&
           parsed.length >= 40 &&
-          parsed.some(a => a.id === 'SEC1M1' && a.predictionModel !== undefined) &&
+          parsed.some(a => a.id === 'SEC1M1') &&
           parsed.some(a => a.id === 'SEC2M1') &&
           parsed.some(a => a.id === 'SEC3M1') &&
           parsed.some(a => a.id === 'SEC4M1')
@@ -211,7 +219,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    try { localStorage.setItem('industrialcare_assets', JSON.stringify(rawAssets)); } catch {}
+    try { localStorage.setItem('industrialcare_assets_v5', JSON.stringify(rawAssets)); } catch {}
   }, [rawAssets]);
   useEffect(() => {
     try { localStorage.setItem('industrialcare_work_orders', JSON.stringify(rawWorkOrders)); } catch {}
@@ -244,7 +252,7 @@ export default function App() {
       if (!e.newValue) return;
       try {
         const parsed = JSON.parse(e.newValue);
-        if (e.key === 'industrialcare_assets' && Array.isArray(parsed)) {
+        if (e.key === 'industrialcare_assets_v5' && Array.isArray(parsed)) {
           setRawAssets(parsed);
         } else if (e.key === 'industrialcare_work_orders' && Array.isArray(parsed)) {
           setRawWorkOrders(parsed);
@@ -661,6 +669,33 @@ export default function App() {
       },
       ...prev
     ]);
+  };
+
+  // Live demonstration state updater - synchronizes simulated telemetry, healthScore, status, and prediction risk across entire app
+  const handleUpdateSimulationState = (machineId, updateData) => {
+    if (!machineId) return;
+    setRawAssets((prevAssets) =>
+      prevAssets.map((asset) => {
+        if (asset.id === machineId) {
+          return {
+            ...asset,
+            ...updateData,
+            _wasDemonstrated: updateData.status !== 'Offline'
+          };
+        }
+        return asset;
+      })
+    );
+    setSelectedAsset((prev) => {
+      if (prev && prev.id === machineId) {
+        return {
+          ...prev,
+          ...updateData,
+          _wasDemonstrated: updateData.status !== 'Offline'
+        };
+      }
+      return prev;
+    });
   };
 
   // Work Order & Task Handlers
@@ -2065,6 +2100,7 @@ export default function App() {
         onEditMachine={handleEditMachine}
         onDeactivateMachine={handleDeactivateMachine}
         onSaveReadings={handleSaveReadings}
+        onUpdateSimulationState={handleUpdateSimulationState}
       />
 
       <WorkOrderFormModal

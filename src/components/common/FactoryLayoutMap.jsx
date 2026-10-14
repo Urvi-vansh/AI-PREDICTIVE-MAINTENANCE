@@ -17,11 +17,14 @@ export const FactoryLayoutMap = ({ assets, onSelectAsset, userRole }) => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'Operational':
+      case 'Low':
         return '#16a34a';
       case 'Warning':
+      case 'Medium':
       case 'Maintenance Required':
         return '#eab308';
       case 'Critical':
+      case 'High':
         return '#dc2626';
       case 'Offline':
       default:
@@ -32,11 +35,14 @@ export const FactoryLayoutMap = ({ assets, onSelectAsset, userRole }) => {
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case 'Operational':
+      case 'Low':
         return 'badge-operational';
       case 'Warning':
+      case 'Medium':
       case 'Maintenance Required':
         return 'badge-warning';
       case 'Critical':
+      case 'High':
         return 'badge-critical';
       case 'Offline':
       default:
@@ -50,14 +56,20 @@ export const FactoryLayoutMap = ({ assets, onSelectAsset, userRole }) => {
       asset.sector === selectedSector ||
       (asset.sector && selectedSector && asset.sector.startsWith(selectedSector)) ||
       (selectedSector && asset.sector && selectedSector.startsWith(asset.sector));
-    const matchesStatus = statusFilter === 'All' || asset.status === statusFilter;
+    const matchesStatus =
+      statusFilter === 'All' ||
+      asset.status === statusFilter ||
+      (statusFilter === 'Operational' && (asset.status === 'Low' || asset.status === 'Operational')) ||
+      (statusFilter === 'Warning' && (asset.status === 'Medium' || asset.status === 'Warning' || asset.status === 'Maintenance Required')) ||
+      (statusFilter === 'Critical' && (asset.status === 'High' || asset.status === 'Critical')) ||
+      (statusFilter === 'Offline' && (asset.status === 'Offline' || !asset.status));
     return matchesSector && matchesStatus;
   });
 
-  const totalNormal = assets.filter(a => a.status === 'Operational').length;
-  const totalWarning = assets.filter(a => a.status === 'Warning' || a.status === 'Maintenance Required').length;
-  const totalCritical = assets.filter(a => a.status === 'Critical').length;
-  const totalOffline = assets.filter(a => a.status === 'Offline').length;
+  const totalNormal = assets.filter(a => a.status === 'Operational' || a.status === 'Low').length;
+  const totalWarning = assets.filter(a => a.status === 'Warning' || a.status === 'Medium' || a.status === 'Maintenance Required').length;
+  const totalCritical = assets.filter(a => a.status === 'Critical' || a.status === 'High').length;
+  const totalOffline = assets.filter(a => a.status === 'Offline' || !a.status).length;
 
   return (
     <div className="factory-layout-container">
@@ -289,10 +301,10 @@ export const FactoryLayoutMap = ({ assets, onSelectAsset, userRole }) => {
                             <div style={{ marginBottom: '0.75rem' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', marginBottom: '0.25rem' }}>
                                 <span style={{ color: 'var(--text-muted)' }}>Health Score:</span>
-                                <strong style={{ color: statusColor }}>{asset.healthScore}%</strong>
+                                <strong style={{ color: statusColor }}>{asset.status === 'Offline' ? '--' : `${asset.healthScore}%`}</strong>
                               </div>
                               <div style={{ width: '100%', height: 6, backgroundColor: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
-                                <div style={{ width: `${asset.healthScore}%`, height: '100%', backgroundColor: statusColor }} />
+                                <div style={{ width: asset.status === 'Offline' ? '0%' : `${asset.healthScore}%`, height: '100%', backgroundColor: statusColor }} />
                               </div>
                             </div>
 

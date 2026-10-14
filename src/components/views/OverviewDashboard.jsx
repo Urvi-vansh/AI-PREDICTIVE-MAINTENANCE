@@ -30,40 +30,42 @@ export const OverviewDashboard = ({
 }) => {
 // Dynamic counts from state
   const totalMachines = assets.length;
-  const healthyMachines = assets.filter(a => a.status === 'Operational').length;
-  const attentionMachines = assets.filter(a => a.status === 'Warning' || a.status === 'Maintenance Required').length;
-  const criticalMachines = assets.filter(a => a.status === 'Critical' || a.status === 'Offline').length;
+  const healthyMachines = assets.filter(a => a.status === 'Operational' || a.status === 'Low').length;
+  const attentionMachines = assets.filter(a => a.status === 'Warning' || a.status === 'Medium' || a.status === 'Maintenance Required').length;
+  const criticalMachines = assets.filter(a => a.status === 'Critical' || a.status === 'High').length;
+  const offlineMachines = assets.filter(a => a.status === 'Offline' || !a.status).length;
   const openFailures = alerts.filter(a => a.status === 'Open' || a.status === 'Investigating').length;
   const resolvedFailures = alerts.filter(a => a.status === 'Resolved' || a.status === 'Closed').length;
 
-  const healthyPct = totalMachines > 0 ? Math.round((healthyMachines / totalMachines) * 100) : 0;
-  const attentionPct = totalMachines > 0 ? Math.round((attentionMachines / totalMachines) * 100) : 0;
-  const criticalPct = totalMachines > 0 ? Math.max(0, 100 - healthyPct - attentionPct) : 0;
+  const activeMachines = totalMachines - offlineMachines;
+  const healthyPct = activeMachines > 0 ? Math.round((healthyMachines / activeMachines) * 100) : null;
+  const attentionPct = activeMachines > 0 ? Math.round((attentionMachines / activeMachines) * 100) : 0;
+  const criticalPct = activeMachines > 0 ? Math.max(0, 100 - (healthyPct || 0) - attentionPct) : 0;
 
   // Custom overview cards data
   const overviewCards = [
     {
       title: 'Total Machines',
       value: totalMachines,
-      subtext: `${totalMachines} monitored machine assets`,
+      subtext: `${totalMachines} monitored machine assets (${offlineMachines} Offline)`,
       trend: 'positive',
-      trendValue: totalMachines > 0 ? '100% Monitored' : 'No Assets',
+      trendValue: `${totalMachines} Total`,
       iconName: 'Cpu'
     },
     {
       title: 'Healthy Machines',
       value: healthyMachines,
-      subtext: `${healthyPct}% of total fleet`,
+      subtext: healthyPct === null ? 'All machinery currently Offline' : `${healthyPct}% of active fleet`,
       trend: 'positive',
-      trendValue: healthyPct > 80 ? 'Optimal' : 'Needs Review',
+      trendValue: healthyPct === null ? 'Offline' : healthyPct > 80 ? 'Optimal' : 'Needs Review',
       iconName: 'CheckCircle2'
     },
     {
       title: 'Requires Attention',
       value: attentionMachines,
-      subtext: `${attentionPct}% of total fleet`,
+      subtext: healthyPct === null ? 'No active alerts' : `${attentionPct}% of active fleet`,
       trend: attentionMachines > 0 ? 'neutral' : 'positive',
-      trendValue: `${attentionMachines} Active`,
+      trendValue: attentionMachines > 0 ? `${attentionMachines} Active` : 'All Clear',
       iconName: 'AlertTriangle'
     },
     {
@@ -105,17 +107,20 @@ export const OverviewDashboard = ({
       (a) => a.sector === sec.name || (a.sector && a.sector.startsWith(sec.name))
     );
     const secTotal = secAssets.length;
-    const secHealthy = secAssets.filter((a) => a.status === 'Operational').length;
-    const secCritical = secAssets.filter(
-      (a) => a.status === 'Critical' || a.status === 'Warning' || a.status === 'Maintenance Required'
-    ).length;
-    const secHealthIndex = secTotal > 0 ? Math.round((secHealthy / secTotal) * 100) : 100;
+    const secHealthy = secAssets.filter((a) => a.status === 'Operational' || a.status === 'Low').length;
+    const secCritical = secAssets.filter((a) => a.status === 'Critical' || a.status === 'High').length;
+    const secWarning = secAssets.filter((a) => a.status === 'Warning' || a.status === 'Medium' || a.status === 'Maintenance Required').length;
+    const secOffline = secAssets.filter((a) => a.status === 'Offline' || !a.status).length;
+    const secActive = secTotal - secOffline;
+    const secHealthIndex = secActive > 0 ? Math.round((secHealthy / secActive) * 100) : null;
 
     return {
       ...sec,
       totalMachines: secTotal,
       healthyMachines: secHealthy,
+      warningMachines: secWarning,
       criticalMachines: secCritical,
+      offlineMachines: secOffline,
       healthIndex: secHealthIndex
     };
   });
@@ -246,7 +251,9 @@ export const OverviewDashboard = ({
                   <Building2 size={18} className="text-blue" />
                   <span style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem' }}>{sec.name}</span>
                 </div>
-                <span className="badge badge-operational">{sec.healthIndex}% Health</span>
+                <span className={`badge ${sec.healthIndex === null ? 'badge-offline' : 'badge-operational'}`}>
+                  {sec.healthIndex === null ? 'Offline' : `${sec.healthIndex}% Health`}
+                </span>
               </div>
 
               <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginBottom: '0.85rem' }}>
@@ -255,13 +262,14 @@ export const OverviewDashboard = ({
 
               {/* Health Bar */}
               <div style={{ width: '100%', height: 6, backgroundColor: 'var(--border-light)', borderRadius: 3, overflow: 'hidden', marginBottom: '0.85rem' }}>
-                <div style={{ width: `${sec.healthIndex}%`, height: '100%', backgroundColor: '#16a34a' }} />
+                <div style={{ width: sec.healthIndex === null ? '0%' : `${sec.healthIndex}%`, height: '100%', backgroundColor: sec.healthIndex === null ? 'var(--status-offline-text)' : '#16a34a' }} />
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.775rem', color: 'var(--text-secondary)' }}>
                 <span><strong>{sec.totalMachines}</strong> Machines</span>
-                <span><strong style={{ color: '#16a34a' }}>{sec.healthyMachines}</strong> Healthy</span>
-                <span><strong style={{ color: '#dc2626' }}>{sec.criticalMachines}</strong> Critical</span>
+                <span><strong style={{ color: sec.healthyMachines > 0 ? '#16a34a' : 'var(--text-muted)' }}>{sec.healthyMachines}</strong> Healthy</span>
+                <span><strong style={{ color: sec.criticalMachines > 0 ? '#dc2626' : 'var(--text-muted)' }}>{sec.criticalMachines}</strong> Critical</span>
+                <span><strong style={{ color: 'var(--status-offline-text)' }}>{sec.offlineMachines}</strong> Offline</span>
               </div>
             </div>
           ))}
