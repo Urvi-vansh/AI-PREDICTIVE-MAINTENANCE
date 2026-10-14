@@ -99,7 +99,7 @@ export const SectorHeadDashboard = ({
               {pendingDepartmentTechs.length > 0 && (
                 <span
                   style={{
-                    backgroundColor: '#d97706',
+                    backgroundColor: 'var(--status-warning-text)',
                     color: '#ffffff',
                     borderRadius: '10px',
                     padding: '0.1rem 0.45rem',
@@ -152,9 +152,9 @@ export const SectorHeadDashboard = ({
                       width: 44,
                       height: 44,
                       fontSize: '1rem',
-                      backgroundColor: 'rgba(217, 119, 6, 0.15)',
-                      color: '#d97706',
-                      border: '1px solid rgba(217, 119, 6, 0.3)'
+                      backgroundColor: 'var(--status-warning-bg)',
+                      color: 'var(--status-warning-dark)',
+                      border: '1px solid var(--status-warning-border)'
                     }}
                   >
                     {tech.avatar || tech.name?.substring(0, 2).toUpperCase() || 'TC'}
@@ -413,7 +413,7 @@ export const SectorHeadDashboard = ({
                           style={{
                             fontSize: '0.75rem',
                             fontWeight: 700,
-                            color: wo.priority === 'High' ? '#dc2626' : wo.priority === 'Medium' ? '#d97706' : '#2563eb'
+                            color: wo.priority === 'High' ? '#dc2626' : wo.priority === 'Medium' ? 'var(--status-warning-dark)' : '#2563eb'
                           }}
                         >
                           {wo.priority}

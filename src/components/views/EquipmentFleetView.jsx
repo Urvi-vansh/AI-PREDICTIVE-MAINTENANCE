@@ -275,7 +275,7 @@ export const EquipmentFleetView = ({
                                 style={{
                                   width: `${asset.healthScore}%`,
                                   height: '100%',
-                                  backgroundColor: asset.healthScore > 80 ? '#16a34a' : asset.healthScore > 60 ? '#d97706' : '#dc2626'
+                                  backgroundColor: asset.healthScore > 80 ? '#16a34a' : asset.healthScore > 60 ? '#eab308' : '#dc2626'
                                 }}
                               />
                             </div>

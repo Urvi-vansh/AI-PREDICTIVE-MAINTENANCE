@@ -8,10 +8,10 @@ export const FactoryLayoutMap = ({ assets, onSelectAsset, userRole }) => {
   const [statusFilter, setStatusFilter] = useState('All');
 
   const sectorsList = [
-    { name: 'Sector 1 (Production & Manufacturing)', code: 'SEC-1', color: 'var(--primary-600)', bg: 'var(--primary-50)' },
-    { name: 'Sector 2 (Heavy Machining & Fabrication)', code: 'SEC-2', color: '#d97706', bg: '#fffbeb' },
-    { name: 'Sector 3 (Assembly & Packaging)', code: 'SEC-3', color: '#7c3aed', bg: '#f5f3ff' },
-    { name: 'Sector 4 (Material Handling & Logistics)', code: 'SEC-4', color: '#059669', bg: '#ecfdf5' }
+    { name: 'Sector 1', fullName: 'Sector 1 (Production & Manufacturing)', code: 'SEC-1', color: 'var(--primary-600)', bg: 'var(--primary-50)' },
+    { name: 'Sector 2', fullName: 'Sector 2 (Heavy Machining & Fabrication)', code: 'SEC-2', color: '#d97706', bg: '#fffbeb' },
+    { name: 'Sector 3', fullName: 'Sector 3 (Assembly & Packaging)', code: 'SEC-3', color: '#7c3aed', bg: '#f5f3ff' },
+    { name: 'Sector 4', fullName: 'Sector 4 (Material Handling & Logistics)', code: 'SEC-4', color: '#059669', bg: '#ecfdf5' }
   ];
 
   const getStatusColor = (status) => {
@@ -20,7 +20,7 @@ export const FactoryLayoutMap = ({ assets, onSelectAsset, userRole }) => {
         return '#16a34a';
       case 'Warning':
       case 'Maintenance Required':
-        return '#d97706';
+        return '#eab308';
       case 'Critical':
         return '#dc2626';
       case 'Offline':
@@ -133,7 +133,7 @@ export const FactoryLayoutMap = ({ assets, onSelectAsset, userRole }) => {
               <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>Normal ({totalNormal})</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#d97706', display: 'inline-block' }} />
+              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#eab308', display: 'inline-block' }} />
               <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>Attention Required ({totalWarning})</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -160,7 +160,9 @@ export const FactoryLayoutMap = ({ assets, onSelectAsset, userRole }) => {
         {sectorsList
           .filter(s => selectedSector === 'All' || s.name === selectedSector)
           .map((sec) => {
-            const sectorAssets = filteredAssets.filter(a => a.sector === sec.name);
+            const sectorAssets = filteredAssets.filter(
+              (a) => a.sector === sec.name || a.sector === sec.fullName || (a.sector && a.sector.startsWith(sec.name))
+            );
             return (
               <div
                 key={sec.name}

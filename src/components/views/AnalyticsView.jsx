@@ -198,7 +198,7 @@ export const AnalyticsView = ({
 
         {!isAdmin ? (
           <Card title="Preventive Compliance Rate" subtitle="Servicing Schedules On-Time">
-            <div style={{ fontSize: '2.2rem', fontWeight: 700, color: preventiveCompliancePct > 80 ? '#16a34a' : '#d97706', marginTop: '0.3rem' }}>
+            <div style={{ fontSize: '2.2rem', fontWeight: 700, color: preventiveCompliancePct > 80 ? '#16a34a' : 'var(--status-warning-dark)', marginTop: '0.3rem' }}>
               {preventiveCompliancePct}%
             </div>
             <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>

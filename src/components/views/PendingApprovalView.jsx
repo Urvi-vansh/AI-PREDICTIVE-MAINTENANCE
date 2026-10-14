@@ -94,7 +94,7 @@ export const PendingApprovalView = ({ user, onLogout, onCheckStatus }) => {
           {isRejected ? (
             <XCircle size={38} style={{ color: 'var(--status-danger-text)' }} />
           ) : (
-            <Clock size={38} style={{ color: '#d97706' }} />
+            <Clock size={38} style={{ color: 'var(--status-warning-text)' }} />
           )}
         </div>
 
@@ -172,7 +172,7 @@ export const PendingApprovalView = ({ user, onLogout, onCheckStatus }) => {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
               <span style={{ color: 'var(--text-muted)' }}>Approval Authority:</span>
-              <span style={{ color: '#d97706', fontWeight: 700 }}>{approver.title}</span>
+              <span style={{ color: 'var(--status-warning-dark)', fontWeight: 700 }}>{approver.title}</span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-light)' }}>
@@ -180,8 +180,8 @@ export const PendingApprovalView = ({ user, onLogout, onCheckStatus }) => {
               <span
                 className="badge"
                 style={{
-                  backgroundColor: isRejected ? 'var(--status-danger-bg)' : 'rgba(217, 119, 6, 0.15)',
-                  color: isRejected ? 'var(--status-danger-text)' : '#d97706',
+                  backgroundColor: isRejected ? 'var(--status-danger-bg)' : 'var(--status-warning-bg)',
+                  color: isRejected ? 'var(--status-danger-text)' : 'var(--status-warning-dark)',
                   fontWeight: 700,
                   fontSize: '0.75rem',
                   padding: '0.25rem 0.65rem'
@@ -199,9 +199,9 @@ export const PendingApprovalView = ({ user, onLogout, onCheckStatus }) => {
             style={{
               padding: '0.65rem 0.75rem',
               borderRadius: 'var(--radius-md)',
-              backgroundColor: 'rgba(217, 119, 6, 0.1)',
-              border: '1px solid rgba(217, 119, 6, 0.25)',
-              color: '#d97706',
+              backgroundColor: 'var(--status-warning-bg)',
+              border: '1px solid var(--status-warning-border)',
+              color: 'var(--status-warning-dark)',
               fontSize: '0.8rem',
               marginBottom: '1.25rem',
               display: 'flex',

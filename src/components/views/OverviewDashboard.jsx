@@ -124,7 +124,7 @@ export const OverviewDashboard = ({
 
   const conicGrad = totalMachines === 0
     ? 'conic-gradient(var(--border-medium) 0% 100%)'
-    : `conic-gradient(#16a34a 0% ${healthyPct}%, #d97706 ${healthyPct}% ${healthyPct + attentionPct}%, #dc2626 ${healthyPct + attentionPct}% 100%)`;
+    : `conic-gradient(#16a34a 0% ${healthyPct}%, #eab308 ${healthyPct}% ${healthyPct + attentionPct}%, #dc2626 ${healthyPct + attentionPct}% 100%)`;
 
   return (
     <div>
@@ -152,7 +152,7 @@ export const OverviewDashboard = ({
             {pendingApprovalCount > 0 && (
               <span
                 style={{
-                  backgroundColor: '#d97706',
+                  backgroundColor: 'var(--status-warning-text)',
                   color: '#ffffff',
                   borderRadius: '10px',
                   padding: '0.1rem 0.45rem',
@@ -173,8 +173,8 @@ export const OverviewDashboard = ({
         <div
           style={{
             padding: '0.85rem 1.25rem',
-            backgroundColor: 'rgba(217, 119, 6, 0.12)',
-            border: '1px solid rgba(217, 119, 6, 0.35)',
+            backgroundColor: 'var(--status-warning-bg)',
+            border: '1px solid var(--status-warning-border)',
             borderRadius: 'var(--radius-lg)',
             marginBottom: '1.5rem',
             display: 'flex',
@@ -187,7 +187,7 @@ export const OverviewDashboard = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <span style={{ fontSize: '1.1rem' }}>⚠️</span>
             <div>
-              <strong style={{ color: '#d97706', fontSize: '0.9rem' }}>
+              <strong style={{ color: 'var(--status-warning-dark)', fontSize: '0.9rem' }}>
                 {pendingApprovalCount} Personnel Access {pendingApprovalCount === 1 ? 'Request' : 'Requests'} Pending Approval
               </strong>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -197,7 +197,7 @@ export const OverviewDashboard = ({
           </div>
           <button
             className="btn btn-sm btn-primary"
-            style={{ backgroundColor: '#d97706', borderColor: '#d97706', fontSize: '0.8rem' }}
+            style={{ backgroundColor: 'var(--status-warning-dark)', borderColor: 'var(--status-warning-dark)', fontSize: '0.8rem' }}
             onClick={() => onNavigateTab('users')}
           >
             Review & Approve Requests →
@@ -316,10 +316,10 @@ export const OverviewDashboard = ({
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#d97706' }} />
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#eab308' }} />
                     Warning / Attention
                   </span>
-                  <strong style={{ color: '#d97706' }}>{attentionMachines} ({attentionPct}%)</strong>
+                  <strong style={{ color: 'var(--status-warning-dark, #a16207)' }}>{attentionMachines} ({attentionPct}%)</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>

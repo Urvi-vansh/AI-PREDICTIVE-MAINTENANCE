@@ -169,13 +169,13 @@ export const UsersManagementView = ({
             padding: '1rem 1.25rem',
             backgroundColor: 'var(--status-warning-bg)',
             borderRadius: 'var(--radius-md)',
-            border: activeTab === 'pending' ? '2px solid #d97706' : '1px solid var(--status-warning-border)',
+            border: activeTab === 'pending' ? '2px solid var(--status-warning-text)' : '1px solid var(--status-warning-border)',
             cursor: 'pointer',
             boxShadow: 'var(--shadow-sm)'
           }}
         >
-          <div style={{ fontSize: '0.75rem', color: 'var(--status-warning-text)' }}>Pending Approval</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#d97706', marginTop: '0.2rem' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--status-warning-dark)' }}>Pending Approval</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--status-warning-dark)', marginTop: '0.2rem' }}>
             {pendingCount}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -241,8 +241,8 @@ export const UsersManagementView = ({
                       style={{
                         width: 40,
                         height: 40,
-                        backgroundColor: 'rgba(217, 119, 6, 0.15)',
-                        color: '#d97706',
+                        backgroundColor: 'var(--status-warning-bg)',
+                        color: 'var(--status-warning-dark)',
                         fontWeight: 700
                       }}
                     >
@@ -401,8 +401,8 @@ export const UsersManagementView = ({
                               width: 38,
                               height: 38,
                               fontSize: '0.9rem',
-                              backgroundColor: isPending ? 'rgba(217, 119, 6, 0.15)' : isRejected ? 'rgba(239, 68, 68, 0.15)' : 'rgba(37, 99, 235, 0.12)',
-                              color: isPending ? '#d97706' : isRejected ? '#dc2626' : '#2563eb'
+                              backgroundColor: isPending ? 'var(--status-warning-bg)' : isRejected ? 'rgba(239, 68, 68, 0.15)' : 'rgba(37, 99, 235, 0.12)',
+                              color: isPending ? 'var(--status-warning-dark)' : isRejected ? '#dc2626' : '#2563eb'
                             }}
                           >
                             {u.avatar || u.name?.substring(0, 2).toUpperCase() || 'US'}
@@ -458,7 +458,7 @@ export const UsersManagementView = ({
 
                           {isPending && (
                             <div>
-                              <span style={{ color: '#d97706', fontWeight: 600 }}>Requested:</span> {u.requestedAt || 'Recently'}
+                              <span style={{ color: 'var(--status-warning-dark)', fontWeight: 600 }}>Requested:</span> {u.requestedAt || 'Recently'}
                               <div style={{ color: 'var(--primary-600)', fontSize: '0.7rem', fontWeight: 600 }}>
                                 Routing: {approver.title}
                               </div>
@@ -598,7 +598,7 @@ export const UsersManagementView = ({
                 {selectedUserDossier.status === 'Pending Approval' && (
                   <div style={{ padding: '0.75rem', backgroundColor: 'var(--status-warning-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--status-warning-border)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <strong style={{ fontSize: '0.85rem', color: '#d97706' }}>2. Awaiting Authorization</strong>
+                      <strong style={{ fontSize: '0.85rem', color: 'var(--status-warning-dark)' }}>2. Awaiting Authorization</strong>
                       <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>Pending</span>
                     </div>
                     <div style={{ fontSize: '0.775rem', color: 'var(--text-main)', marginTop: '0.2rem' }}>

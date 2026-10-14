@@ -271,7 +271,7 @@ export const DepartmentsView = ({
               <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>
                 {mechData.activeTechs.length}
                 {mechData.pendingTechs.length > 0 && (
-                  <span style={{ fontSize: '0.75rem', color: '#d97706', marginLeft: '0.2rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--status-warning-dark)', marginLeft: '0.2rem' }}>
                     (+{mechData.pendingTechs.length} req)
                   </span>
                 )}
@@ -355,7 +355,7 @@ export const DepartmentsView = ({
               <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>
                 {elecData.activeTechs.length}
                 {elecData.pendingTechs.length > 0 && (
-                  <span style={{ fontSize: '0.75rem', color: '#d97706', marginLeft: '0.2rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--status-warning-dark)', marginLeft: '0.2rem' }}>
                     (+{elecData.pendingTechs.length} req)
                   </span>
                 )}
@@ -493,7 +493,7 @@ export const DepartmentsView = ({
 
               {(isAdmin || isCurrentDeptHead) && activeData.pendingTechs.length > 0 && (
                 <div style={{ backgroundColor: 'var(--bg-primary)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--status-warning-border)' }}>
-                  <div style={{ fontSize: '0.75rem', color: '#d97706', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--status-warning-dark)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                     <AlertTriangle size={14} /> {activeData.pendingTechs.length} Technician Approval Pending
                   </div>
                   <button
@@ -602,8 +602,8 @@ export const DepartmentsView = ({
                                   width: 36,
                                   height: 36,
                                   fontSize: '0.85rem',
-                                  backgroundColor: isPending ? 'rgba(217, 119, 6, 0.15)' : 'rgba(37, 99, 235, 0.12)',
-                                  color: isPending ? '#d97706' : '#2563eb'
+                                  backgroundColor: isPending ? 'var(--status-warning-bg)' : 'rgba(37, 99, 235, 0.12)',
+                                  color: isPending ? 'var(--status-warning-dark)' : '#2563eb'
                                 }}
                               >
                                 {tech.avatar || tech.name.substring(0, 2).toUpperCase()}

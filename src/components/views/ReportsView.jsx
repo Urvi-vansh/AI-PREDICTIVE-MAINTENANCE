@@ -102,7 +102,7 @@ export const ReportsView = ({
     const healthIndex = total > 0 ? Math.round((operational / total) * 100) : 100;
 
     return {
-      name: sec.title,
+      name: sec.name,
       total,
       operational,
       warning,
@@ -289,7 +289,7 @@ export const ReportsView = ({
             >
               <option value="All">All Sectors</option>
               {standardSectors.map((s) => (
-                <option key={s.name} value={s.title}>{s.title}</option>
+                <option key={s.name} value={s.title}>{s.name}</option>
               ))}
             </select>
           </div>
@@ -540,7 +540,7 @@ export const ReportsView = ({
                         </td>
                         <td>
                           <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{alt.alertSource || 'IoT Stream'}</div>
-                          <div style={{ fontSize: '0.725rem', color: alt.severity === 'Critical' ? '#dc2626' : '#d97706' }}>{alt.risk || alt.severity}</div>
+                          <div style={{ fontSize: '0.725rem', color: alt.severity === 'Critical' ? '#dc2626' : 'var(--status-warning-dark)' }}>{alt.risk || alt.severity}</div>
                         </td>
                         <td>
                           <span style={{ fontWeight: 700, color: 'var(--primary-700)', fontSize: '0.825rem' }}>{alt.machineId}</span>

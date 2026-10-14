@@ -62,7 +62,7 @@ export const IoTSensorsView = ({ sensors }) => {
         </div>
         <div style={{ padding: '1.25rem', backgroundColor: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)' }}>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>Attention Thresholds</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#d97706', marginTop: '0.2rem' }}>8 Sensors</div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--status-warning-dark)', marginTop: '0.2rem' }}>8 Sensors</div>
           <div style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 600, marginTop: '0.2rem' }}>1 Critical Threshold</div>
         </div>
       </div>
@@ -128,7 +128,7 @@ export const IoTSensorsView = ({ sensors }) => {
                   <td>{s.assetName}</td>
                   <td>{s.type}</td>
                   <td>
-                    <span style={{ fontWeight: 700, fontSize: '0.95rem', color: s.status === 'Critical' ? '#dc2626' : s.status === 'Warning' ? '#d97706' : '#0f172a' }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.95rem', color: s.status === 'Critical' ? '#dc2626' : s.status === 'Warning' ? 'var(--status-warning-dark)' : '#0f172a' }}>
                       {s.currentValue}
                     </span>
                   </td>

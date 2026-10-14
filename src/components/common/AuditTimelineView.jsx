@@ -13,11 +13,11 @@ export const AuditTimelineView = ({ auditTimeline = [] }) => {
   const getActionIcon = (action) => {
     if (action.includes('Created')) return <ShieldAlert size={16} className="text-blue" />;
     if (action.includes('Acknowledged') || action.includes('Assigned')) return <UserCheck size={16} style={{ color: 'var(--primary-600)' }} />;
-    if (action.includes('Progress')) return <Clock size={16} style={{ color: '#d97706' }} />;
-    if (action.includes('Reminder')) return <AlertTriangle size={16} style={{ color: '#d97706' }} />;
+    if (action.includes('Progress')) return <Clock size={16} style={{ color: 'var(--status-warning-text)' }} />;
+    if (action.includes('Reminder')) return <AlertTriangle size={16} style={{ color: 'var(--status-warning-text)' }} />;
     if (action.includes('Escalated')) return <ShieldAlert size={16} style={{ color: '#dc2626' }} />;
     if (action.includes('Resolved') || action.includes('Verified')) return <CheckCircle2 size={16} style={{ color: '#16a34a' }} />;
-    if (action.includes('Reopened')) return <RotateCcw size={16} style={{ color: '#d97706' }} />;
+    if (action.includes('Reopened')) return <RotateCcw size={16} style={{ color: 'var(--status-warning-text)' }} />;
     return <FileText size={16} className="text-blue" />;
   };
 

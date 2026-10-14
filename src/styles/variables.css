@@ -33,9 +33,10 @@
   --status-success-text: #16a34a;        /* Green - Operational */
   --status-success-border: rgba(22, 163, 74, 0.25);
 
-  --status-warning-bg: rgba(217, 119, 6, 0.1);
-  --status-warning-text: #d97706;        /* Yellow/Amber - Warning */
-  --status-warning-border: rgba(217, 119, 6, 0.25);
+  --status-warning-bg: rgba(234, 179, 8, 0.14);
+  --status-warning-text: #eab308;        /* Clean Yellow - Warning */
+  --status-warning-border: rgba(234, 179, 8, 0.35);
+  --status-warning-dark: #a16207;        /* Accessible text contrast yellow */
 
   --status-danger-bg: rgba(220, 38, 38, 0.1);
   --status-danger-text: #dc2626;         /* Red - Critical */

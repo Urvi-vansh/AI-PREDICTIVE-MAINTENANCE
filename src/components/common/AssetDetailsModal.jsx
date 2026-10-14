@@ -3,7 +3,6 @@ import { Modal } from './Modal';
 import { Badge } from './Badge';
 import {
   Cpu,
-  MapPin,
   Calendar,
   Activity,
   Wrench,
@@ -17,7 +16,6 @@ import {
   PlusCircle,
   FileText,
   Building2,
-  Users,
   ArrowLeft,
   Gauge,
   Zap,
@@ -34,7 +32,9 @@ import {
   Shield,
   Sparkles,
   Lock,
-  Radio
+  Radio,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { MachineSimulationDashboard } from './MachineSimulationDashboard';
 import { ManualReadingsModal } from '../forms/ManualReadingsModal';
@@ -46,6 +46,14 @@ import {
   getUserSectorPrefix,
   ROLES
 } from '../../config/permissions';
+
+const getModelName = (machine) => {
+  if (!machine) return 'N/A';
+  if (machine.model) return machine.model;
+  const name = machine.name || '';
+  const match = name.trim().match(/([A-Za-z0-9]+(?:-[A-Za-z0-9]+)+|[A-Za-z]+-[0-9]+|[A-Za-z0-9]{2,}\b)$/);
+  return match ? match[1] : machine.type || name;
+};
 
 export const AssetDetailsModal = ({
   isOpen,
@@ -65,6 +73,7 @@ export const AssetDetailsModal = ({
   onSaveReadings
 }) => {
   const [activeTab, setActiveTab] = useState('telemetry');
+  const [isDemoFullscreen, setIsDemoFullscreen] = useState(true);
   const [isManualReadingsOpen, setIsManualReadingsOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -102,6 +111,20 @@ export const AssetDetailsModal = ({
 
   if (!asset) return null;
 
+  // Clean sector name helper (e.g. "Sector 1", "Sector 2")
+  const cleanSectorName = (() => {
+    if (asset?.sector) {
+      const match = asset.sector.match(/Sector\s*\d+/i);
+      if (match) return match[0];
+      return asset.sector.replace(/\s*[\(-].*$/, '').trim();
+    }
+    if (asset?.id?.startsWith('SEC1')) return 'Sector 1';
+    if (asset?.id?.startsWith('SEC2')) return 'Sector 2';
+    if (asset?.id?.startsWith('SEC3')) return 'Sector 3';
+    if (asset?.id?.startsWith('SEC4')) return 'Sector 4';
+    return 'Sector';
+  })();
+
   // Strict Data-Level Security Boundary Guard: prevent cross-sector modal inspection
   if (currentUser && !isAssetAllowedForUser(asset, currentUser)) {
     return (
@@ -113,7 +136,7 @@ export const AssetDetailsModal = ({
           </h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', lineHeight: 1.5, maxWidth: 480, margin: '0 auto 1.5rem' }}>
             You are authenticated as <strong>{currentUser.title || currentUser.name}</strong> ({currentUser.sector}).
-            Plant role-based security rules restrict inspection of equipment telemetry, operational readings, and maintenance requests in <strong>{asset.sector}</strong>.
+            Plant role-based security rules restrict inspection of equipment telemetry, operational readings, and maintenance requests in <strong>{cleanSectorName}</strong>.
           </p>
           <button className="btn btn-primary" onClick={onClose}>
             Close Window
@@ -327,7 +350,7 @@ export const AssetDetailsModal = ({
 
   const handleOpenVerifyClose = () => {
     if (!isSectorHeadForThisMachine) {
-      alert(`Security Access Restriction: Only the Sector Head for ${asset.sector} or Administrator has authority to verify repair resolutions.`);
+      alert(`Security Access Restriction: Only the Sector Head for ${cleanSectorName} or Administrator has authority to verify repair resolutions.`);
       return;
     }
     setVerificationFeedback(
@@ -349,7 +372,7 @@ export const AssetDetailsModal = ({
 
   const handleOpenRejectResolution = () => {
     if (!isSectorHeadForThisMachine) {
-      alert(`Security Access Restriction: Only the Sector Head for ${asset.sector} or Administrator has authority to reject repair resolutions.`);
+      alert(`Security Access Restriction: Only the Sector Head for ${cleanSectorName} or Administrator has authority to reject repair resolutions.`);
       return;
     }
     setRejectionReason('');
@@ -374,7 +397,7 @@ export const AssetDetailsModal = ({
   // Re-Request Maintenance Handler (Follow-up creation)
   const handleTriggerReRequest = () => {
     if (!isSectorHeadForThisMachine) {
-      alert(`Security Access Restriction: Only the Sector Head for ${asset.sector} or Administrator has authority to issue follow-up maintenance requests.`);
+      alert(`Security Access Restriction: Only the Sector Head for ${cleanSectorName} or Administrator has authority to issue follow-up maintenance requests.`);
       return;
     }
     if (hasActiveFollowUp) {
@@ -482,11 +505,33 @@ export const AssetDetailsModal = ({
       <Modal
         isOpen={isOpen}
         onClose={onClose}
-        title={`Machinery Profile: ${asset.name} (${asset.id})`}
+        title={`${cleanSectorName} - ${asset.name}`}
+        size={activeTab === 'simulation' ? (isDemoFullscreen ? 'fullscreen' : 'xl') : 'xl'}
+        headerActions={
+          activeTab === 'simulation' ? (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setIsDemoFullscreen(!isDemoFullscreen)}
+              title={isDemoFullscreen ? "Exit Fullscreen" : "Fullscreen Demonstration"}
+              style={{
+                padding: '0.25rem 0.6rem',
+                fontSize: '0.75rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                fontWeight: 600
+              }}
+            >
+              {isDemoFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+              <span>{isDemoFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span>
+            </button>
+          ) : null
+        }
       >
         <div>
           {/* ============================================================== */}
-          {/* HEADER SUMMARY RIBBON: ID, NAME, SECTOR, DEPT, OPERATIONAL STATUS */}
+          {/* HEADER SUMMARY RIBBON: SECTOR & MACHINE NAME, OPERATIONAL STATUS */}
           {/* ============================================================== */}
           <div className="machine-profile-header-ribbon">
             <div style={{ flex: '1', minWidth: 280 }}>
@@ -494,28 +539,21 @@ export const AssetDetailsModal = ({
                 <span
                   style={{
                     fontSize: '0.75rem',
-                    fontWeight: 800,
+                    fontWeight: 700,
                     letterSpacing: '0.04em',
                     textTransform: 'uppercase',
                     padding: '0.2rem 0.6rem',
                     borderRadius: 'var(--radius-sm)',
                     backgroundColor: 'var(--primary-50)',
                     color: 'var(--primary-700)',
-                    border: '1px solid var(--primary-200)'
+                    border: '1px solid var(--primary-200)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem'
                   }}
                 >
-                  Bay {asset.seatNumber || '01'} • {asset.id}
-                </span>
-
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  {asset.type || asset.category}
-                </span>
-
-                <span
-                  className="badge badge-neutral"
-                  style={{ fontSize: '0.7rem', border: '1px solid var(--border-medium)' }}
-                >
-                  Source: {asset.dataSource || 'IoT Modbus Gateway'}
+                  <Building2 size={13} style={{ color: 'var(--primary-600)' }} />
+                  {cleanSectorName}
                 </span>
               </div>
 
@@ -524,36 +562,12 @@ export const AssetDetailsModal = ({
                   fontSize: '1.4rem',
                   fontWeight: 800,
                   color: 'var(--text-main)',
-                  margin: '0.15rem 0 0.4rem 0',
+                  margin: '0.15rem 0',
                   lineHeight: 1.25
                 }}
               >
                 {asset.name}
               </h2>
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  flexWrap: 'wrap',
-                  color: 'var(--text-muted)',
-                  fontSize: '0.825rem'
-                }}
-              >
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <Building2 size={14} style={{ color: 'var(--primary-600)' }} />
-                  <strong>{asset.sector}</strong>
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <Users size={14} style={{ color: 'var(--primary-600)' }} />
-                  Responsible Dept: <strong>{asset.department}</strong>
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <MapPin size={14} />
-                  {asset.location}
-                </span>
-              </div>
             </div>
 
             {/* Operational Status & Top Quick Badges */}
@@ -726,9 +740,9 @@ export const AssetDetailsModal = ({
               className={`btn btn-sm ${activeTab === 'simulation' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setActiveTab('simulation')}
               style={{
-                borderColor: activeTab === 'simulation' ? '#d97706' : undefined,
-                backgroundColor: activeTab === 'simulation' ? '#d97706' : undefined,
-                color: activeTab === 'simulation' ? '#ffffff' : undefined,
+                borderColor: activeTab === 'simulation' ? 'var(--status-warning-text)' : undefined,
+                backgroundColor: activeTab === 'simulation' ? 'var(--status-warning-text)' : undefined,
+                color: activeTab === 'simulation' ? '#0f172a' : undefined,
                 fontWeight: 700
               }}
             >
@@ -815,7 +829,7 @@ export const AssetDetailsModal = ({
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-light)', paddingTop: '0.4rem' }}>
                     <span>Target Band: 1200 - 2400 RPM</span>
-                    <span style={{ fontWeight: 700, color: rpmMeasurement ? (rpmMeasurement > 2600 ? '#d97706' : '#16a34a') : 'var(--text-light)' }}>
+                    <span style={{ fontWeight: 700, color: rpmMeasurement ? (rpmMeasurement > 2600 ? 'var(--status-warning-dark)' : '#16a34a') : 'var(--text-light)' }}>
                       {rpmMeasurement ? (rpmMeasurement > 2600 ? 'High' : 'Nominal') : 'Sensor N/A'}
                     </span>
                   </div>
@@ -830,7 +844,7 @@ export const AssetDetailsModal = ({
                     <Thermometer size={16} style={{ color: tempMeasurement > 85 ? '#dc2626' : '#ea580c' }} />
                   </div>
 
-                  <div className="telemetry-metric-val" style={{ color: tempMeasurement > 85 ? '#dc2626' : tempMeasurement > 70 ? '#d97706' : 'var(--text-main)' }}>
+                  <div className="telemetry-metric-val" style={{ color: tempMeasurement > 85 ? '#dc2626' : tempMeasurement > 70 ? 'var(--status-warning-dark)' : 'var(--text-main)' }}>
                     {tempMeasurement !== null ? (
                       <>
                         {tempMeasurement}° <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' }}>C</span>
@@ -842,7 +856,7 @@ export const AssetDetailsModal = ({
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-light)', paddingTop: '0.4rem' }}>
                     <span>Safe Limit: &lt; 75°C</span>
-                    <span style={{ fontWeight: 700, color: tempMeasurement > 85 ? '#dc2626' : tempMeasurement > 70 ? '#d97706' : '#16a34a' }}>
+                    <span style={{ fontWeight: 700, color: tempMeasurement > 85 ? '#dc2626' : tempMeasurement > 70 ? 'var(--status-warning-dark)' : '#16a34a' }}>
                       {tempMeasurement > 85 ? 'Critical Heat' : tempMeasurement > 70 ? 'Warning' : 'Normal'}
                     </span>
                   </div>
@@ -869,7 +883,7 @@ export const AssetDetailsModal = ({
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-light)', paddingTop: '0.4rem' }}>
                     <span>Rating: 15 - 55 Amps</span>
-                    <span style={{ fontWeight: 700, color: currentMeasurement > 60 ? '#d97706' : '#16a34a' }}>
+                    <span style={{ fontWeight: 700, color: currentMeasurement > 60 ? 'var(--status-warning-dark)' : '#16a34a' }}>
                       {currentMeasurement > 60 ? 'High Load' : 'Balanced'}
                     </span>
                   </div>
@@ -884,7 +898,7 @@ export const AssetDetailsModal = ({
                     <Gauge size={16} style={{ color: vibrationMeasurement > 6.0 ? '#dc2626' : '#2563eb' }} />
                   </div>
 
-                  <div className="telemetry-metric-val" style={{ color: vibrationMeasurement > 6.0 ? '#dc2626' : vibrationMeasurement > 3.5 ? '#d97706' : 'var(--text-main)' }}>
+                  <div className="telemetry-metric-val" style={{ color: vibrationMeasurement > 6.0 ? '#dc2626' : vibrationMeasurement > 3.5 ? 'var(--status-warning-dark)' : 'var(--text-main)' }}>
                     {vibrationMeasurement !== null ? (
                       <>
                         {vibrationMeasurement} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' }}>mm/s</span>
@@ -896,7 +910,7 @@ export const AssetDetailsModal = ({
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-light)', paddingTop: '0.4rem' }}>
                     <span>ISO 10816 Zone B Limit: 3.5</span>
-                    <span style={{ fontWeight: 700, color: vibrationMeasurement > 6.0 ? '#dc2626' : vibrationMeasurement > 3.5 ? '#d97706' : '#16a34a' }}>
+                    <span style={{ fontWeight: 700, color: vibrationMeasurement > 6.0 ? '#dc2626' : vibrationMeasurement > 3.5 ? 'var(--status-warning-dark)' : '#16a34a' }}>
                       {vibrationMeasurement > 6.0 ? 'Zone D (Stop)' : vibrationMeasurement > 3.5 ? 'Zone C (Warning)' : 'Zone A/B (Good)'}
                     </span>
                   </div>
@@ -909,10 +923,10 @@ export const AssetDetailsModal = ({
                   <Info size={15} style={{ color: 'var(--primary-600)' }} /> Equipment Technical Specifications
                 </h4>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
                   <div style={{ padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-primary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Machine Tag & Serial</div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>{asset.id}</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Machine Name</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>{asset.name}</div>
                   </div>
 
                   <div style={{ padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-primary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
@@ -925,14 +939,10 @@ export const AssetDetailsModal = ({
                     <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>{asset.assignedTech || 'Marcus Vance'}</div>
                   </div>
 
-                  {asset.specs && Object.entries(asset.specs).map(([k, v]) => (
-                    <div key={k} style={{ padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-primary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
-                        {k.replace(/([A-Z])/g, ' $1')}
-                      </div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>{v}</div>
-                    </div>
-                  ))}
+                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-primary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Model Name</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>{getModelName(asset)}</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -998,7 +1008,7 @@ export const AssetDetailsModal = ({
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', marginTop: '0.85rem' }}>
                   <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
                     <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>Current Prediction Risk</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 800, marginTop: '0.2rem', color: asset.predictionRisk?.toLowerCase().includes('critical') ? '#dc2626' : asset.predictionRisk?.toLowerCase().includes('high') ? '#ea580c' : asset.predictionRisk?.toLowerCase().includes('medium') ? '#d97706' : '#16a34a' }}>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 800, marginTop: '0.2rem', color: asset.predictionRisk?.toLowerCase().includes('critical') ? '#dc2626' : asset.predictionRisk?.toLowerCase().includes('high') ? '#ea580c' : asset.predictionRisk?.toLowerCase().includes('medium') ? 'var(--status-warning-dark)' : '#16a34a' }}>
                       {asset.predictionRisk || 'No Valid Prediction Generated'}
                     </div>
                   </div>
@@ -1067,7 +1077,7 @@ export const AssetDetailsModal = ({
 
                 <div style={{ padding: '0.85rem 1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', marginTop: '0.75rem' }}>
                   <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>Detected Fault Classification</div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 800, marginTop: '0.25rem', color: detectedFaultType ? (asset.status === 'Critical' ? '#dc2626' : '#d97706') : 'var(--text-muted)' }}>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 800, marginTop: '0.25rem', color: detectedFaultType ? (asset.status === 'Critical' ? '#dc2626' : 'var(--status-warning-dark)') : 'var(--text-muted)' }}>
                     {detectedFaultType || (
                       <span style={{ fontSize: '0.85rem', fontStyle: 'italic', fontWeight: 500 }}>
                         No validated fault-classification model deployed for this equipment
@@ -1138,7 +1148,7 @@ export const AssetDetailsModal = ({
                   {isDeadlineExpired && (
                     <div className="overdue-alert-box">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <AlertTriangle size={24} style={{ color: '#d97706', flexShrink: 0 }} />
+                        <AlertTriangle size={24} style={{ color: 'var(--status-warning-text)', flexShrink: 0 }} />
                         <div>
                           <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#92400e' }}>
                             Maintenance Deadline Expired ({activeWorkOrder.dueDate})

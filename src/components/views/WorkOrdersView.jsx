@@ -227,7 +227,7 @@ export const WorkOrdersView = ({
                               style={{
                                 fontSize: '0.75rem',
                                 fontWeight: 700,
-                                color: wo.priority === 'High' ? '#dc2626' : wo.priority === 'Medium' ? '#d97706' : '#2563eb'
+                                color: wo.priority === 'High' ? '#dc2626' : wo.priority === 'Medium' ? 'var(--status-warning-dark)' : '#2563eb'
                               }}
                             >
                               {wo.priority}

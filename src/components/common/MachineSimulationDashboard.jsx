@@ -317,11 +317,15 @@ export const MachineSimulationDashboard = ({
       .join(' ');
 
     return (
-      <svg width={width} height={height} style={{ overflow: 'visible', display: 'block' }}>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        style={{ width: '100%', height: `${height}px`, overflow: 'visible', display: 'block' }}
+        preserveAspectRatio="none"
+      >
         <polyline
           fill="none"
           stroke={color}
-          strokeWidth="2"
+          strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
           points={points}
@@ -335,7 +339,7 @@ export const MachineSimulationDashboard = ({
               ((dataPoints[dataPoints.length - 1] - min) / range) * (height - 8) -
               4
             }
-            r="3.5"
+            r="4"
             fill={color}
           />
         )}
@@ -397,24 +401,12 @@ export const MachineSimulationDashboard = ({
 
           <span
             style={{
-              fontSize: '0.825rem',
-              fontWeight: 700,
+              fontSize: '0.9rem',
+              fontWeight: 800,
               color: 'var(--text-main)'
             }}
           >
-            Virtual ESP32 Telemetry Engine • {asset?.id} ({asset?.name})
-          </span>
-
-          <span
-            style={{
-              fontSize: '0.75rem',
-              color: 'var(--text-muted)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.3rem'
-            }}
-          >
-            <Cpu size={12} /> Seed: #{DEFAULT_SEEDS[scenario]} (Deterministic Replayable)
+            Live ESP32 Telemetry & AI Prediction Demo • {asset?.name}
           </span>
         </div>
 
@@ -543,8 +535,8 @@ export const MachineSimulationDashboard = ({
                 style={{
                   fontWeight: 700,
                   fontSize: '0.8rem',
-                  borderColor: scenario === SCENARIOS.MEDIUM ? '#d97706' : undefined,
-                  backgroundColor: scenario === SCENARIOS.MEDIUM ? '#d97706' : undefined,
+                  borderColor: scenario === SCENARIOS.MEDIUM ? 'var(--status-warning-text)' : undefined,
+                  backgroundColor: scenario === SCENARIOS.MEDIUM ? 'var(--status-warning-text)' : undefined,
                   color: scenario === SCENARIOS.MEDIUM ? '#ffffff' : undefined
                 }}
               >
@@ -694,7 +686,7 @@ export const MachineSimulationDashboard = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <span>
               Engine Status:{' '}
-              <strong style={{ color: simState === 'running' ? '#16a34a' : simState === 'paused' ? '#d97706' : 'var(--text-muted)' }}>
+              <strong style={{ color: simState === 'running' ? '#16a34a' : simState === 'paused' ? 'var(--status-warning-dark)' : 'var(--text-muted)' }}>
                 {simState.toUpperCase()}
               </strong>
             </span>
@@ -716,55 +708,50 @@ export const MachineSimulationDashboard = ({
       </div>
 
       {/* ============================================================== */}
-      {/* 3. FOUR DISTINCT STATUS DIMENSIONS (REQUIREMENT 5)             */}
-      {/* Clearly separates:                                             */}
-      {/* 1. Sensor operating status                                     */}
-      {/* 2. ML-predicted failure risk                                   */}
-      {/* 3. Confirmed machine failure                                   */}
-      {/* 4. Maintenance request status                                  */}
-      {/* Never shows RUL unless validated model provides it            */}
+      {/* 3. PRIMARY TELEMETRY & AI FAILURE RISK STATUS                  */}
       {/* ============================================================== */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
-          gap: '0.75rem'
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '1rem'
         }}
       >
-        {/* Dimension 1: Sensor Operating Status */}
+        {/* Card 1: Sensor Operating Status */}
         <div
           style={{
-            padding: '0.9rem',
+            padding: '1rem 1.25rem',
             backgroundColor: 'var(--bg-card)',
             border: '1px solid var(--border-light)',
             borderRadius: 'var(--radius-md)',
-            borderLeft: '4px solid #3b82f6'
+            borderLeft: '4px solid #3b82f6',
+            boxShadow: 'var(--shadow-sm)'
           }}
         >
-          <div style={{ fontSize: '0.725rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-            1. Sensor Operating Status
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Sensor Feed Operating Status
           </div>
-          <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: '0.25rem 0' }}>
+          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', margin: '0.3rem 0' }}>
             {simState === 'running' ? (
-              <span style={{ color: '#16a34a', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#16a34a' }} className="animate-pulse" />
-                Live Feed Streaming
+              <span style={{ color: '#16a34a', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#16a34a' }} className="animate-pulse" />
+                Live Telemetry Streaming
               </span>
             ) : simState === 'paused' ? (
-              <span style={{ color: '#d97706' }}>Feed Paused</span>
+              <span style={{ color: 'var(--status-warning-dark)' }}>Feed Paused</span>
             ) : (
               <span style={{ color: 'var(--text-muted)' }}>Idle / Stopped</span>
             )}
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Profile: <strong>{scenario}</strong> • Step #{currentReading?.step || 0} • Interval {intervalMs / 1000}s
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            Scenario: <strong style={{ color: 'var(--text-main)' }}>{scenario}</strong> • Step #{currentReading?.step || 0} • {intervalMs / 1000}s updates
           </div>
         </div>
 
-        {/* Dimension 2: ML-Predicted Failure Risk */}
+        {/* Card 2: ML-Predicted Failure Risk */}
         <div
           style={{
-            padding: '0.9rem',
+            padding: '1rem 1.25rem',
             backgroundColor: 'var(--bg-card)',
             border: '1px solid var(--border-light)',
             borderRadius: 'var(--radius-md)',
@@ -772,31 +759,32 @@ export const MachineSimulationDashboard = ({
               latestPrediction?.prediction === 1
                 ? '#dc2626'
                 : latestPrediction?.riskPercentage > 30
-                ? '#d97706'
+                ? '#eab308'
                 : '#16a34a'
-            }`
+            }`,
+            boxShadow: 'var(--shadow-sm)'
           }}
         >
-          <div style={{ fontSize: '0.725rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-            2. ML-Predicted Failure Risk
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            AI Failure Risk Assessment
           </div>
-          <div style={{ fontSize: '1.05rem', fontWeight: 800, margin: '0.25rem 0' }}>
+          <div style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0.3rem 0' }}>
             {latestPrediction?.prediction !== undefined && latestPrediction?.prediction !== null ? (
               <span
                 style={{
                   color: latestPrediction.prediction === 1 ? '#dc2626' : '#16a34a',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.35rem'
+                  gap: '0.45rem'
                 }}
               >
                 {latestPrediction.prediction === 1 ? (
                   <>
-                    <AlertTriangle size={16} /> Failure Predicted ({latestPrediction.riskPercentage}%)
+                    <AlertTriangle size={18} /> Failure Predicted ({latestPrediction.riskPercentage}% Risk)
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 size={16} /> Normal ({latestPrediction.riskPercentage}% Risk)
+                    <CheckCircle2 size={18} /> Normal Operation ({latestPrediction.riskPercentage}% Risk)
                   </>
                 )}
               </span>
@@ -804,80 +792,10 @@ export const MachineSimulationDashboard = ({
               <span style={{ color: 'var(--text-muted)' }}>Awaiting Model Evaluation</span>
             )}
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Model: <strong>RandomForestClassifier-v1.0</strong> (Real Inference)
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            AI Model: <strong style={{ color: 'var(--text-main)' }}>RandomForest-v1.0</strong> • Failure Probability: {latestPrediction?.riskPercentage !== null && latestPrediction?.riskPercentage !== undefined ? `${latestPrediction.riskPercentage}%` : '--'}
           </div>
         </div>
-
-        {/* Dimension 3: Confirmed Machine Failure */}
-        <div
-          style={{
-            padding: '0.9rem',
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-light)',
-            borderRadius: 'var(--radius-md)',
-            borderLeft: '4px solid #64748b'
-          }}
-        >
-          <div style={{ fontSize: '0.725rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-            3. Confirmed Machine Failure
-          </div>
-          <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: '0.25rem 0' }}>
-            <span style={{ color: '#16a34a', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <ShieldCheck size={16} /> No Physical Failure
-            </span>
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Hardware: <strong>ESP32 Simulation Isolated</strong> (Physical equipment unaffected)
-          </div>
-        </div>
-
-        {/* Dimension 4: Maintenance Request Status */}
-        <div
-          style={{
-            padding: '0.9rem',
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-light)',
-            borderRadius: 'var(--radius-md)',
-            borderLeft: '4px solid #8b5cf6'
-          }}
-        >
-          <div style={{ fontSize: '0.725rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-            4. Maintenance Request Status
-          </div>
-          <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: '0.25rem 0' }}>
-            {activeWorkOrder ? (
-              <span style={{ color: 'var(--primary-700)' }}>
-                {activeWorkOrder.id} ({activeWorkOrder.status})
-              </span>
-            ) : (
-              <span style={{ color: 'var(--text-muted)' }}>No Ticket Active</span>
-            )}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Safety Guard: <strong>Simulated Data Does Not Create Tickets</strong>
-          </div>
-        </div>
-      </div>
-
-      {/* RUL Boundary Note */}
-      <div
-        style={{
-          padding: '0.55rem 0.85rem',
-          backgroundColor: 'var(--bg-secondary)',
-          border: '1px dashed var(--border-medium)',
-          borderRadius: 'var(--radius-sm)',
-          fontSize: '0.75rem',
-          color: 'var(--text-muted)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.45rem'
-        }}
-      >
-        <Info size={14} style={{ color: 'var(--primary-600)', flexShrink: 0 }} />
-        <span>
-          <strong>RUL Governance Rule:</strong> Remaining Useful Life (RUL) estimation is intentionally disabled because the loaded model is a single-row binary <code>RandomForestClassifier</code>. RUL displays are strictly suppressed until a validated regression model is configured.
-        </span>
       </div>
 
       {/* ============================================================== */}
@@ -926,7 +844,7 @@ export const MachineSimulationDashboard = ({
             style={{
               fontSize: '1.65rem',
               fontWeight: 800,
-              color: currentReading?.temperature > 38 ? '#dc2626' : currentReading?.temperature > 36 ? '#d97706' : 'var(--text-main)',
+              color: currentReading?.temperature > 38 ? '#dc2626' : currentReading?.temperature > 36 ? 'var(--status-warning-dark)' : 'var(--text-main)',
               margin: '0.2rem 0'
             }}
           >
@@ -997,38 +915,6 @@ export const MachineSimulationDashboard = ({
             {renderSparkline(vibPoints, '#8b5cf6', 0, 7, 24, 75)}
           </div>
         </div>
-      </div>
-
-      {/* Synthetic Feature Notice Banner (Requirement 3: "clearly marked as synthetic") */}
-      <div
-        style={{
-          padding: '0.65rem 0.9rem',
-          backgroundColor: '#eff6ff',
-          border: '1px solid #bfdbfe',
-          borderRadius: 'var(--radius-sm)',
-          fontSize: '0.75rem',
-          color: '#1e40af',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '0.5rem'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-          <Sliders size={14} style={{ color: '#2563eb' }} />
-          <span>
-            <strong>Synthetic Input Vectors:</strong> Accelerometer components (
-            <code>x: {currentReading?.synthetic_sensors?.x}</code>,{' '}
-            <code>y: {currentReading?.synthetic_sensors?.y}</code>,{' '}
-            <code>z: {currentReading?.synthetic_sensors?.z}</code>) and rolling statistics (
-            <code>mean: {currentReading?.synthetic_sensors?.vibration_mean}</code>,{' '}
-            <code>std: {currentReading?.synthetic_sensors?.vibration_std}</code>) are computed synthetically for full model input compatibility.
-          </span>
-        </div>
-        <span className="badge badge-neutral" style={{ fontSize: '0.7rem' }}>
-          Exact 12 Features Provided to RandomForest
-        </span>
       </div>
 
       {/* ============================================================== */}
@@ -1196,23 +1082,20 @@ export const MachineSimulationDashboard = ({
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', textAlign: 'left' }}>
             <thead style={{ position: 'sticky', top: 0, backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-light)', zIndex: 1 }}>
               <tr>
-                <th style={{ padding: '0.45rem 0.6rem' }}>Step</th>
-                <th style={{ padding: '0.45rem 0.6rem' }}>Timestamp</th>
-                <th style={{ padding: '0.45rem 0.6rem' }}>RPM</th>
-                <th style={{ padding: '0.45rem 0.6rem' }}>Temp</th>
-                <th style={{ padding: '0.45rem 0.6rem' }}>Current (A)</th>
-                <th style={{ padding: '0.45rem 0.6rem' }}>Vib Mag (g)</th>
-                <th style={{ padding: '0.45rem 0.6rem' }}>x, y, z [Synthetic]</th>
-                <th style={{ padding: '0.45rem 0.6rem' }}>Vib Anom</th>
-                <th style={{ padding: '0.45rem 0.6rem' }}>ML Output</th>
-                <th style={{ padding: '0.45rem 0.6rem' }}>Failure Prob</th>
-                <th style={{ padding: '0.45rem 0.6rem' }}>Source</th>
+                <th style={{ padding: '0.5rem 0.75rem' }}>Step</th>
+                <th style={{ padding: '0.5rem 0.75rem' }}>Timestamp</th>
+                <th style={{ padding: '0.5rem 0.75rem' }}>Spindle (RPM)</th>
+                <th style={{ padding: '0.5rem 0.75rem' }}>Temperature</th>
+                <th style={{ padding: '0.5rem 0.75rem' }}>Current</th>
+                <th style={{ padding: '0.5rem 0.75rem' }}>Vibration</th>
+                <th style={{ padding: '0.5rem 0.75rem' }}>AI Prediction</th>
+                <th style={{ padding: '0.5rem 0.75rem' }}>Failure Risk</th>
               </tr>
             </thead>
             <tbody>
               {history.length === 0 ? (
                 <tr>
-                  <td colSpan="11" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-light)' }}>
+                  <td colSpan="8" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-light)' }}>
                     No telemetry sequence generated yet. Click <strong>Start</strong> to begin live ESP32 demonstration.
                   </td>
                 </tr>
@@ -1225,27 +1108,17 @@ export const MachineSimulationDashboard = ({
                       backgroundColor: idx === 0 ? 'var(--primary-50)' : idx % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-secondary)'
                     }}
                   >
-                    <td style={{ padding: '0.4rem 0.6rem', fontWeight: 700 }}>#{row.step}</td>
-                    <td style={{ padding: '0.4rem 0.6rem', color: 'var(--text-muted)' }}>
+                    <td style={{ padding: '0.45rem 0.75rem', fontWeight: 700 }}>#{row.step}</td>
+                    <td style={{ padding: '0.45rem 0.75rem', color: 'var(--text-muted)' }}>
                       {new Date(row.timestamp).toLocaleTimeString()}
                     </td>
-                    <td style={{ padding: '0.4rem 0.6rem', fontWeight: 600 }}>{row.rpm}</td>
-                    <td style={{ padding: '0.4rem 0.6rem' }}>{row.temperature}°C</td>
-                    <td style={{ padding: '0.4rem 0.6rem' }}>{row.current}A</td>
-                    <td style={{ padding: '0.4rem 0.6rem', fontWeight: 600 }}>
-                      {row.synthetic_sensors?.vibration_magnitude}g
+                    <td style={{ padding: '0.45rem 0.75rem', fontWeight: 600 }}>{row.rpm} RPM</td>
+                    <td style={{ padding: '0.45rem 0.75rem' }}>{row.temperature}°C</td>
+                    <td style={{ padding: '0.45rem 0.75rem' }}>{row.current} A</td>
+                    <td style={{ padding: '0.45rem 0.75rem', fontWeight: 600 }}>
+                      {row.synthetic_sensors?.vibration_magnitude || row.vibration} g
                     </td>
-                    <td style={{ padding: '0.4rem 0.6rem', color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '0.7rem' }}>
-                      {row.synthetic_sensors?.x}, {row.synthetic_sensors?.y}, {row.synthetic_sensors?.z}
-                    </td>
-                    <td style={{ padding: '0.4rem 0.6rem' }}>
-                      {row.synthetic_sensors?.vibration_anomaly === 1 ? (
-                        <span style={{ color: '#dc2626', fontWeight: 700 }}>1 (Yes)</span>
-                      ) : (
-                        <span style={{ color: 'var(--text-light)' }}>0 (No)</span>
-                      )}
-                    </td>
-                    <td style={{ padding: '0.4rem 0.6rem' }}>
+                    <td style={{ padding: '0.45rem 0.75rem' }}>
                       {row.prediction !== null && row.prediction !== undefined ? (
                         <span
                           style={{
@@ -1253,13 +1126,13 @@ export const MachineSimulationDashboard = ({
                             color: row.prediction === 1 ? '#dc2626' : '#16a34a'
                           }}
                         >
-                          {row.prediction === 1 ? '1 [Failure]' : '0 [Normal]'}
+                          {row.prediction === 1 ? 'Failure Predicted' : 'Normal'}
                         </span>
                       ) : (
                         <span style={{ color: '#b45309' }}>Error</span>
                       )}
                     </td>
-                    <td style={{ padding: '0.4rem 0.6rem', fontWeight: 700 }}>
+                    <td style={{ padding: '0.45rem 0.75rem', fontWeight: 700 }}>
                       {row.riskPercentage !== null && row.riskPercentage !== undefined ? (
                         <span style={{ color: row.riskPercentage > 50 ? '#dc2626' : '#16a34a' }}>
                           {row.riskPercentage}%
@@ -1267,11 +1140,6 @@ export const MachineSimulationDashboard = ({
                       ) : (
                         '--'
                       )}
-                    </td>
-                    <td style={{ padding: '0.4rem 0.6rem' }}>
-                      <span className="badge badge-neutral" style={{ fontSize: '0.65rem' }}>
-                        {row.data_source}
-                      </span>
                     </td>
                   </tr>
                 ))

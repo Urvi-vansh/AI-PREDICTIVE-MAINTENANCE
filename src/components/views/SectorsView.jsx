@@ -69,41 +69,33 @@ export const SectorsView = ({
       id: 'sec-1',
       name: 'Sector 1',
       prefix: 'SEC1',
-      title: 'Sector 1: Production & Manufacturing',
+      title: 'Sector 1',
       fullName: 'Sector 1 (Production & Manufacturing)',
-      headName: 'Sector Head - Sector 1',
-      description: 'High-precision CNC machining centers, automated robotic stamping lines, and precision fabrication cells.',
-      categories: ['Machining', 'Stamping', 'Robotics']
+      headName: 'Sector Head - Sector 1'
     },
     {
       id: 'sec-2',
       name: 'Sector 2',
       prefix: 'SEC2',
-      title: 'Sector 2: Heavy Machining & Fabrication',
+      title: 'Sector 2',
       fullName: 'Sector 2 (Heavy Machining & Fabrication)',
-      headName: 'Sector Head - Sector 2',
-      description: 'Heavy horizontal boring mills, plasma arc cutting beds, hydraulic shears, and high-pressure fluid power units.',
-      categories: ['Machining', 'Fluid Systems', 'Thermal Systems']
+      headName: 'Sector Head - Sector 2'
     },
     {
       id: 'sec-3',
       name: 'Sector 3',
       prefix: 'SEC3',
-      title: 'Sector 3: Assembly & Packaging',
+      title: 'Sector 3',
       fullName: 'Sector 3 (Assembly & Packaging)',
-      headName: 'Sector Head - Sector 3',
-      description: 'High-speed robotic assembly cells, carton erectors, ultrasonic welders, and automated packaging conveyors.',
-      categories: ['Material Handling', 'Robotics', 'Pneumatics']
+      headName: 'Sector Head - Sector 3'
     },
     {
       id: 'sec-4',
       name: 'Sector 4',
       prefix: 'SEC4',
-      title: 'Sector 4: Material Handling & Logistics',
+      title: 'Sector 4',
       fullName: 'Sector 4 (Material Handling & Logistics)',
-      headName: 'Sector Head - Sector 4',
-      description: 'Autonomous Guided Vehicles (AGVs), automated high-bay cranes, overhead bridge rails, and distribution charging hubs.',
-      categories: ['Material Handling', 'Pneumatics', 'Electrical Distribution']
+      headName: 'Sector Head - Sector 4'
     }
   ];
 
@@ -610,23 +602,11 @@ export const SectorsView = ({
 
                 {/* Sector Header */}
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                      <span
-                        style={{
-                          padding: '0.2rem 0.65rem',
-                          borderRadius: 'var(--radius-sm)',
-                          backgroundColor: 'var(--primary-50)',
-                          color: 'var(--primary-700)',
-                          border: '1px solid var(--primary-200)',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.04em'
-                        }}
-                      >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
                         {sec.name}
-                      </span>
+                      </h3>
                       {!isAllowed && (
                         <span
                           style={{
@@ -646,17 +626,20 @@ export const SectorsView = ({
                         </span>
                       )}
                     </div>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                    <span
+                      style={{
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        color: 'var(--primary-700)',
+                        backgroundColor: 'var(--primary-50)',
+                        border: '1px solid var(--primary-200)',
+                        padding: '0.2rem 0.65rem',
+                        borderRadius: 'var(--radius-full)'
+                      }}
+                    >
                       {sec.total} Machines
                     </span>
                   </div>
-
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
-                    {sec.title}
-                  </h3>
-                  <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: 1.45, marginBottom: '1.1rem' }}>
-                    {sec.description}
-                  </p>
 
                   {/* Health Score Meter */}
                   <div
@@ -672,7 +655,7 @@ export const SectorsView = ({
                       <span style={{ fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                         <Activity size={14} style={{ color: 'var(--primary-600)' }} /> Health Index
                       </span>
-                      <span style={{ fontWeight: 700, color: sec.healthIndex >= 85 ? 'var(--status-success-text)' : sec.healthIndex >= 70 ? 'var(--status-warning-text)' : 'var(--status-danger-text)' }}>
+                      <span style={{ fontWeight: 700, color: sec.healthIndex >= 85 ? 'var(--status-success-text)' : sec.healthIndex >= 70 ? 'var(--status-warning-dark)' : 'var(--status-danger-text)' }}>
                         {sec.healthIndex}%
                       </span>
                     </div>
@@ -681,7 +664,7 @@ export const SectorsView = ({
                         style={{
                           width: `${sec.healthIndex}%`,
                           height: '100%',
-                          backgroundColor: sec.healthIndex >= 85 ? '#16a34a' : sec.healthIndex >= 70 ? '#d97706' : '#dc2626',
+                          backgroundColor: sec.healthIndex >= 85 ? '#16a34a' : sec.healthIndex >= 70 ? '#eab308' : '#dc2626',
                           transition: 'width 400ms ease'
                         }}
                       />
@@ -725,8 +708,8 @@ export const SectorsView = ({
                           padding: '0.5rem 0.25rem'
                         }}
                       >
-                        <div style={{ fontSize: '0.675rem', fontWeight: 600, color: 'var(--status-warning-text)' }}>Warning</div>
-                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--status-warning-text)', marginTop: '0.15rem' }}>
+                        <div style={{ fontSize: '0.675rem', fontWeight: 600, color: 'var(--status-warning-dark)' }}>Warning</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--status-warning-dark)', marginTop: '0.15rem' }}>
                           {sec.warning}
                         </div>
                       </div>
@@ -761,26 +744,6 @@ export const SectorsView = ({
                         </div>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Category Pills */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '1.25rem' }}>
-                    {sec.categories.map((cat) => (
-                      <span
-                        key={cat}
-                        style={{
-                          fontSize: '0.7rem',
-                          fontWeight: 500,
-                          padding: '0.15rem 0.5rem',
-                          borderRadius: 'var(--radius-full)',
-                          backgroundColor: 'var(--bg-secondary)',
-                          color: 'var(--text-secondary)',
-                          border: '1px solid var(--border-light)'
-                        }}
-                      >
-                        {cat}
-                      </span>
-                    ))}
                   </div>
                 </div>
 

@@ -376,7 +376,7 @@ export const AlertsView = ({
                         <div style={{ fontSize: '0.775rem', color: 'var(--text-main)', fontWeight: 600 }}>
                           {alt.alertSource || 'IoT Telemetry'}
                         </div>
-                        <div style={{ fontSize: '0.725rem', color: alt.severity === 'Critical' ? '#dc2626' : '#d97706', fontWeight: 700 }}>
+                        <div style={{ fontSize: '0.725rem', color: alt.severity === 'Critical' ? '#dc2626' : 'var(--status-warning-dark)', fontWeight: 700 }}>
                           {alt.risk || alt.severity}
                         </div>
                       </td>
